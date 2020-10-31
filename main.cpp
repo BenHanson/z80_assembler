@@ -5351,8 +5351,6 @@ int main(int argc, const char* argv[])
 
 	try
 	{
-		parsertl::state_machine gsm;
-		lexertl::state_machine lsm;
 		lexertl::memory_file mf(argv[1]);
 		data data;
 
