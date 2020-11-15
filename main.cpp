@@ -10,6 +10,9 @@ using token = parsertl::token<lexertl::citerator>;
 
 struct data
 {
+	parsertl::state_machine _gsm;
+	lexertl::state_machine _lsm;
+	std::map<std::uint16_t, void (*)(data& data)> _actions;
 	parsertl::match_results _results;
 	token::token_vector _productions;
 	uint16_t _org = 23296;
@@ -29,12 +32,22 @@ struct data
 	uint16_t _integer = ~0;
 	memory _memory;
 
+	auto dollar(const std::size_t index)
+	{
+		return _results.dollar(_gsm, index, _productions);
+	}
+
 	void push_byte()
 	{
 		if (_integer > 255)
 			throw std::out_of_range("Value " + std::to_string(_integer) + " is greater than 255");
 
 		_memory.push_back(_integer & 0xff);
+	}
+
+	void push_byte(const uint8_t by)
+	{
+		_memory.push_back(by);
 	}
 
 	void push_word()
@@ -46,8 +59,9 @@ struct data
 		_memory.push_back(_integer >> 8);
 	}
 
-	void rel_label(std::string name)
+	void rel_label(const std::size_t idx)
 	{
+		const std::string name = dollar(idx).str();
 		auto iter = _labels.find(name);
 
 		if (iter == _labels.end())
@@ -65,8 +79,9 @@ struct data
 		}
 	}
 
-	void wlabel(std::string name)
+	void wlabel(const int32_t idx)
 	{
+		const std::string name = dollar(idx).str();
 		auto iter = _labels.find(name);
 
 		if (iter == _labels.end())
@@ -82,1836 +97,1833 @@ struct data
 			*ptr = static_cast<uint8_t>(val >> 8);
 		}
 	}
+
+	int eight_bits(const std::size_t idx)
+	{
+		const int n = atoi(dollar(idx).first);
+
+		if (n > 255)
+		{
+			const std::string str(dollar(0).first,
+				dollar(_results.production_size(_gsm,
+					_results.entry.param)).second);
+
+			throw std::out_of_range(str + ": Integer out of range");
+		}
+
+		return n;
+	}
+
+	int sixteen_bits(const std::size_t idx)
+	{
+		const int nn = atoi(dollar(idx).first);
+
+		if (nn > 65535)
+		{
+			const std::string str(dollar(0).first,
+				dollar(_results.production_size(_gsm,
+					_results.entry.param)).second);
+
+			throw std::out_of_range(str + ": Integer out of range");
+		}
+
+		return nn;
+	}
+
+	void build_parser()
+	{
+		parsertl::rules grules;
+		lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
+		std::string warnings;
+
+		grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF CP CPD CPDR CPI "
+			"CPIR CPL D DAA DB DW DE DEC DI DJNZ E EI EX EXX H HALT Hex HL "
+			"Integer I IM IN INC IND INDR INI INIR IX IY JP JR L LD LDD LDDR LDI "
+			"LDIR M Name NC NEG NL NOP NZ OR ORG OTDR OTIR OUT OUTD OUTI P PE PO "
+			"PUSH POP R RES RET RETI RETN RL RLA RLC RLCA RLD RR RRA RRC RRCA RRD "
+			"RST SBC SCF SET SLA SP SRA SRL SUB XOR Z");
+		grules.push("opcodes", "%empty "
+			"| opcodes opcode NL");
+		grules.push("opcode", "");
+		_actions[grules.push("opcode", "ORG integer")] = [](data& data)
+		{
+			data._org = data._integer;
+		};
+		grules.push("opcode", "label opt_colon opcode");
+		_actions[grules.push("label", "Name")] = [](data& data)
+		{
+			std::string name = data.dollar(0).str();
+			auto iter = data._labels.find(name);
+
+			if (iter != data._labels.end())
+			{
+				throw std::runtime_error(name + " already exists");
+			}
+
+			data._labels[name] = static_cast<uint16_t>(data._memory.size());
+		};
+		grules.push("opt_colon", "%empty | ':'");
+		grules.push("opcode", "DB db_list");
+		grules.push("opcode", "DW dw_list");
+		_actions[grules.push("db_list", "integer")] = [](data& data)
+		{
+			data.push_byte();
+		};
+		_actions[grules.push("db_list", "db_list ',' integer")] = [](data& data)
+		{
+			data.push_byte();
+		};
+		_actions[grules.push("dw_list", "integer")] = [](data& data)
+		{
+			data.push_word();
+		};
+		_actions[grules.push("dw_list", "Name")] = [](data& data)
+		{
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(0);
+		};
+		_actions[grules.push("dw_list", "db_list ',' integer")] = [](data& data)
+		{
+			data.push_word();
+		};
+		_actions[grules.push("dw_list", "db_list ',' Name")] = [](data& data)
+		{
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(2);
+		};
+		_actions[grules.push("opcode", "LD r ',' r2")] = [](data& data)
+		{
+			// Made local var to prevent VC++ warning
+			const uint8_t by = 0b01000000 | data._r << 3 | data._r2;
+
+			data.push_byte(by);
+		};
+		_actions[grules.push("opcode", "LD r ',' integer")] = [](data& data)
+		{
+			data.push_byte(0b00000110 | data._r << 3);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD r ',' '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0b01000110 | data._r << 3);
+		};
+		_actions[grules.push("opcode", "LD r ',' '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0b01000110 | data._r << 3);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD r ',' '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0b01000110 | data._r << 3);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD '(' HL ')' ',' r")] = [](data& data)
+		{
+			data.push_byte(0b01110000 | data._r);
+		};
+		_actions[grules.push("opcode", "LD '(' IX '+' integer ')' ',' r")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0b01110000 | data._r);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD '(' IY '+' integer ')' ',' r")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0b01110000 | data._r);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD '(' HL ')' ',' integer")] = [](data& data)
+		{
+			data.push_byte(0x36);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "LD '(' IX '+' integer ')' ',' Integer")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x36);
+			data.push_byte();
+			data.push_byte(data.eight_bits(7));
+		};
+		_actions[grules.push("opcode", "LD '(' IY '+' integer ')' ',' Integer")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x36);
+			data.push_byte();
+			data.push_byte(data.eight_bits(7));
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' '(' BC ')'")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0x0A);
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' '(' DE ')'")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0x1A);
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' '(' integer ')'")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0x3A);
+			data.push_word();
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' '(' Name ')'")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0x3A);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(4);
+		};
+		_actions[grules.push("opcode", "LD '(' BC ')' ',' A")] = [](data& data)
+		{
+			data.push_byte(0x02);
+		};
+		_actions[grules.push("opcode", "LD '(' DE ')' ',' A")] = [](data& data)
+		{
+			data.push_byte(0x12);
+		};
+		_actions[grules.push("opcode", "LD '(' integer ')' ',' A")] = [](data& data)
+		{
+			data.push_byte(0x32);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD '(' Name ')' ',' A")] = [](data& data)
+		{
+			data.push_byte(0x32);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(2);
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' I")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0xED);
+			data.push_byte(0x57);
+		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "LD r ',' R")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0xED);
+			data.push_byte(0x5F);
+		};
+		_actions[grules.push("opcode", "LD I ',' A")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x47);
+		};
+		_actions[grules.push("opcode", "LD R ',' A")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x4F);
+		};
+		_actions[grules.push("opcode", "LD dd ',' integer")] = [](data& data)
+		{
+			data.push_byte(0b00000001 | data._dd << 4);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD dd ',' Name")] = [](data& data)
+		{
+			data.push_byte(0b00000001 | data._dd << 4);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(3);
+		};
+		_actions[grules.push("opcode", "LD IX ',' integer")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x21);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD IY ',' integer")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x21);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD dd ',' '(' integer ')'")] = [](data& data)
+		{
+			if (data._dd == 0b10)
+			{
+				data.push_byte(0x2A);
+			}
+			else
+			{
+				data.push_byte(0xED);
+				data.push_byte(0b01001011 | data._dd << 4);
+			}
+
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD dd ',' '(' Name ')'")] = [](data& data)
+		{
+			if (data._dd == 0b10)
+			{
+				data.push_byte(0x2A);
+			}
+			else
+			{
+				data.push_byte(0xED);
+				data.push_byte(0b01001011 | data._dd << 4);
+			}
+
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(4);
+		};
+		_actions[grules.push("opcode", "LD IX ',' '(' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x2A);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD IY ',' '(' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x2A);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD '(' integer ')' ',' dd")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0b01000011 | data._dd << 4);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD '(' integer ')' ',' IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x22);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "LD '(' integer ')' ',' IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x22);
+			data.push_word();
+		};
+		// Only SP register is legal
+		_actions[grules.push("opcode", "LD dd ',' HL")] = [](data& data)
+		{
+			if (data._dd != 0b11)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register SP valid");
+			}
+
+			data.push_byte(0xF9);
+		};
+		// Only SP register is legal
+		_actions[grules.push("opcode", "LD dd ',' IX")] = [](data& data)
+		{
+			if (data._dd != 0b11)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register SP valid");
+			}
+
+			data.push_byte(0xDD);
+			data.push_byte(0xF9);
+		};
+		// Only SP register is legal
+		_actions[grules.push("opcode", "LD dd ',' IY")] = [](data& data)
+		{
+			if (data._dd != 0b11)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register SP valid");
+			}
+
+			data.push_byte(0xFD);
+			data.push_byte(0xF9);
+		};
+		_actions[grules.push("opcode", "PUSH qq")] = [](data& data)
+		{
+			data.push_byte(0b11000101 | data._qq << 4);
+		};
+		_actions[grules.push("opcode", "PUSH IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xE5);
+		};
+		_actions[grules.push("opcode", "PUSH IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xE5);
+		};
+		_actions[grules.push("opcode", "POP qq")] = [](data& data)
+		{
+			data.push_byte(0b11000001 | data._qq << 4);
+		};
+		_actions[grules.push("opcode", "POP IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xE1);
+		};
+		_actions[grules.push("opcode", "POP IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xE1);
+		};
+		_actions[grules.push("opcode", "EX DE ',' HL")] = [](data& data)
+		{
+			data.push_byte(0xEB);
+		};
+		_actions[grules.push("opcode", R"(EX AF ',' AF '\'')")] = [](data& data)
+		{
+			data.push_byte(0x08);
+		};
+		_actions[grules.push("opcode", "EXX")] = [](data& data)
+		{
+			data.push_byte(0xD9);
+		};
+		_actions[grules.push("opcode", "EX '(' SP ')' ',' HL")] = [](data& data)
+		{
+			data.push_byte(0xE3);
+		};
+		_actions[grules.push("opcode", "EX '(' SP ')' ',' IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xE3);
+		};
+		_actions[grules.push("opcode", "EX '(' SP ')' ',' IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xE3);
+		};
+		_actions[grules.push("opcode", "LDI")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA0);
+		};
+		_actions[grules.push("opcode", "LDIR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB0);
+		};
+		_actions[grules.push("opcode", "LDD")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA8);
+		};
+		_actions[grules.push("opcode", "LDDR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB8);
+		};
+		_actions[grules.push("opcode", "CPI")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA1);
+		};
+		_actions[grules.push("opcode", "CPIR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB1);
+		};
+		_actions[grules.push("opcode", "CPD")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA9);
+		};
+		_actions[grules.push("opcode", "CPDR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB9);
+		};
+		_actions[grules.push("opcode", "ADD A ',' r")] = [](data& data)
+		{
+			data.push_byte(0b10000000 | data._r);
+		};
+		_actions[grules.push("opcode", "ADD A ',' integer")] = [](data& data)
+		{
+			data.push_byte(0b11000110);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "ADD A ',' '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0b10000110);
+		};
+		_actions[grules.push("opcode", "ADD A ',' '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x86);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "ADD A ',' '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x86);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "ADC A ',' r")] = [](data& data)
+		{
+			data.push_byte(0b10001000 | data._r);
+		};
+		_actions[grules.push("opcode", "ADC A ',' integer")] = [](data& data)
+		{
+			data.push_byte(0xCE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "ADC A ',' '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0x8E);
+		};
+		_actions[grules.push("opcode", "ADC A ',' '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x8E);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SUB r")] = [](data& data)
+		{
+			data.push_byte(0b10010000 | data._r);
+		};
+		_actions[grules.push("opcode", "SUB integer")] = [](data& data)
+		{
+			data.push_byte(0xd6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SUB '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0x96);
+		};
+		_actions[grules.push("opcode", "SUB '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x96);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SUB '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x96);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SBC A ',' r")] = [](data& data)
+		{
+			data.push_byte(0b10011000 | data._r);
+		};
+		_actions[grules.push("opcode", "SBC A ',' integer")] = [](data& data)
+		{
+			data.push_byte(0xDE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SBC A ',' '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0b10011110);
+		};
+		_actions[grules.push("opcode", "SBC A ',' '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x9E);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "SBC A ',' '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x9E);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "AND r")] = [](data& data)
+		{
+			data.push_byte(0b10100000 | data._r);
+		};
+		_actions[grules.push("opcode", "AND integer")] = [](data& data)
+		{
+			data.push_byte(0xE6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "AND '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xA6);
+		};
+		_actions[grules.push("opcode", "AND '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xA6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "AND '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xA6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "OR r")] = [](data& data)
+		{
+			data.push_byte(0b10110000 | data._r);
+		};
+		_actions[grules.push("opcode", "OR integer")] = [](data& data)
+		{
+			data.push_byte(0xF6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "OR '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xB6);
+		};
+		_actions[grules.push("opcode", "OR '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xB6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "OR '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xB6);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "XOR r")] = [](data& data)
+		{
+			data.push_byte(0b10101000 | data._r);
+		};
+		_actions[grules.push("opcode", "XOR integer")] = [](data& data)
+		{
+			data.push_byte(0xEE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "XOR '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xAE);
+		};
+		_actions[grules.push("opcode", "XOR '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xAE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "XOR '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xAE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "CP r")] = [](data& data)
+		{
+			data.push_byte(0b10111000 | data._r);
+		};
+		_actions[grules.push("opcode", "CP integer")] = [](data& data)
+		{
+			data.push_byte(0xFE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "CP '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xBE);
+		};
+		_actions[grules.push("opcode", "CP '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xBE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "CP '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xBE);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "INC r")] = [](data& data)
+		{
+			data.push_byte(0b00000100 | data._r << 3);
+		};
+		_actions[grules.push("opcode", "INC '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0x34);
+		};
+		_actions[grules.push("opcode", "INC '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x34);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "INC '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x34);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "DEC r")] = [](data& data)
+		{
+			data.push_byte(0b00000101 | data._r << 3);
+		};
+		_actions[grules.push("opcode", "DEC '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0x35);
+		};
+		_actions[grules.push("opcode", "DEC '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x35);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "DEC '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x35);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "DAA")] = [](data& data)
+		{
+			data.push_byte(0x27);
+		};
+		_actions[grules.push("opcode", "CPL")] = [](data& data)
+		{
+			data.push_byte(0x2F);
+		};
+		_actions[grules.push("opcode", "NEG")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x44);
+		};
+		_actions[grules.push("opcode", "CCF")] = [](data& data)
+		{
+			data.push_byte(0x3F);
+		};
+		_actions[grules.push("opcode", "SCF")] = [](data& data)
+		{
+			data.push_byte(0x37);
+		};
+		_actions[grules.push("opcode", "NOP")] = [](data& data)
+		{
+			data.push_byte(0);
+		};
+		_actions[grules.push("opcode", "HALT")] = [](data& data)
+		{
+			data.push_byte(0x76);
+		};
+		_actions[grules.push("opcode", "DI")] = [](data& data)
+		{
+			data.push_byte(0xF3);
+		};
+		_actions[grules.push("opcode", "EI")] = [](data& data)
+		{
+			data.push_byte(0xFB);
+		};
+		// Integer can be 0, 1, 2
+		_actions[grules.push("opcode", "IM Integer")] = [](data& data)
+		{
+			const int i = atoi(data.dollar(1).first);
+
+			switch (i)
+			{
+			case 0:
+				data.push_byte(0xED);
+				data.push_byte(0x46);
+				break;
+			case 1:
+				data.push_byte(0xED);
+				data.push_byte(0x56);
+				break;
+			case 2:
+				data.push_byte(0xED);
+				data.push_byte(0x5E);
+				break;
+			default:
+				throw std::out_of_range(std::string(data.dollar(0).first,
+					data.dollar(1).second) + ": Integer out of range");
+			}
+		};
+		_actions[grules.push("opcode", "ADD HL ',' ss")] = [](data& data)
+		{
+			data.push_byte(0b00001001 | data._ss << 4);
+		};
+		_actions[grules.push("opcode", "ADC HL ',' dd")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0b01001010 | data._dd << 4);
+		};
+		_actions[grules.push("opcode", "SBC HL ',' dd")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0b01000010 | data._dd << 4);
+		};
+		_actions[grules.push("opcode", "ADD IX ',' pp")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0b00001001 | data._pp << 4);
+		};
+		_actions[grules.push("opcode", "ADD IY ',' rr")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0b00001001 | data._rr << 4);
+		};
+		_actions[grules.push("opcode", "INC ss")] = [](data& data)
+		{
+			data.push_byte(0b00000011 | data._ss << 4);
+		};
+		_actions[grules.push("opcode", "INC IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x23);
+		};
+		_actions[grules.push("opcode", "INC IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x23);
+		};
+		_actions[grules.push("opcode", "DEC ss")] = [](data& data)
+		{
+			data.push_byte(0b00001011 | data._ss << 4);
+		};
+		_actions[grules.push("opcode", "DEC IX")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0x2B);
+		};
+		_actions[grules.push("opcode", "DEC IY")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x2B);
+		};
+		_actions[grules.push("opcode", "RLCA")] = [](data& data)
+		{
+			data.push_byte(0x07);
+		};
+		_actions[grules.push("opcode", "RLA")] = [](data& data)
+		{
+			data.push_byte(0x17);
+		};
+		_actions[grules.push("opcode", "RRCA")] = [](data& data)
+		{
+			data.push_byte(0x0F);
+		};
+		_actions[grules.push("opcode", "RRA")] = [](data& data)
+		{
+			data.push_byte(0x1F);
+		};
+		_actions[grules.push("opcode", "RLC r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(data._r);
+		};
+		_actions[grules.push("opcode", "RLC '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x06);
+		};
+		_actions[grules.push("opcode", "RLC '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x06);
+		};
+		_actions[grules.push("opcode", "RLC '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x06);
+		};
+		_actions[grules.push("opcode", "RL r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00010000 | data._r);
+		};
+		_actions[grules.push("opcode", "RL '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x16);
+		};
+		_actions[grules.push("opcode", "RL '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x16);
+		};
+		_actions[grules.push("opcode", "RL '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x16);
+		};
+		_actions[grules.push("opcode", "RRC r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00001000 | data._r);
+		};
+		_actions[grules.push("opcode", "RRC '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x0E);
+		};
+		_actions[grules.push("opcode", "RRC '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x0E);
+		};
+		_actions[grules.push("opcode", "RRC '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x0E);
+		};
+		_actions[grules.push("opcode", "RR r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00001000 | data._r);
+		};
+		_actions[grules.push("opcode", "RR '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x1E);
+		};
+		_actions[grules.push("opcode", "RR '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x1E);
+		};
+		_actions[grules.push("opcode", "RR '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x1E);
+		};
+		_actions[grules.push("opcode", "SLA r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00100000 | data._r);
+		};
+		_actions[grules.push("opcode", "SLA '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x26);
+		};
+		_actions[grules.push("opcode", "SLA '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x26);
+		};
+		_actions[grules.push("opcode", "SLA '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x26);
+		};
+		_actions[grules.push("opcode", "SRA r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00101000 | data._r);
+		};
+		_actions[grules.push("opcode", "SRA '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x2E);
+		};
+		_actions[grules.push("opcode", "SRA '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x2E);
+		};
+		_actions[grules.push("opcode", "SRA '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x2E);
+		};
+		_actions[grules.push("opcode", "SRL r")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0b00111000 | data._r);
+		};
+		_actions[grules.push("opcode", "SRL '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xCB);
+			data.push_byte(0x3E);
+		};
+		_actions[grules.push("opcode", "SRL '(' IX '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x3E);
+		};
+		_actions[grules.push("opcode", "SRL '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte();
+			data.push_byte(0x3E);
+		};
+		_actions[grules.push("opcode", "RLD")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x6F);
+		};
+		_actions[grules.push("opcode", "RRD")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x67);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "BIT Integer ',' r")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(3).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			// Made local var to prevent VC++ warning
+			const uint8_t by = 0b01000000 | bit << 3 | data._r;
+
+			data.push_byte(0xCB);
+			data.push_byte(by);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "BIT Integer ',' '(' HL ')'")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xCB);
+			data.push_byte(0b01000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "BIT Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
+		{
+			const int bit =
+				atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(6));
+			data.push_byte(0b01000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "BIT Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
+		{
+			const int bit =
+				atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(6));
+			data.push_byte(0b01000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "SET Integer ',' r")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(3).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			// Made local var to prevent VC++ warning
+			const uint8_t by = 0b11000000 | bit << 3 | data._r;
+
+			data.push_byte(0xCB);
+			data.push_byte(by);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "SET Integer ',' '(' HL ')'")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xCB);
+			data.push_byte(0b11000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "SET Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(1));
+			data.push_byte(0b11000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "SET Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(1));
+			data.push_byte(0b11000110 | bit << 3);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "RES Integer ',' r")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(3).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			// Made local var to prevent VC++ warning
+			const uint8_t by = 0b10000000 | bit << 3 | data._r;
+
+			data.push_byte(0xCB);
+			data.push_byte(by);
+		};
+		_actions[grules.push("opcode", "RES Integer ',' '(' HL ')'")] = [](data& data)
+		{
+			const int bit =
+				atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xCB);
+			data.push_byte(0b10000110 | bit << 3);
+		};
+		_actions[grules.push("opcode", "RES Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
+		{
+			const int bit =
+				atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xDD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(6));
+			data.push_byte(0b10000110 | bit << 3);
+		};
+		_actions[grules.push("opcode", "RES Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
+		{
+			const int bit = atoi(data.dollar(1).first);
+
+			if (bit > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(7).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0xFD);
+			data.push_byte(0xCB);
+			data.push_byte(data.eight_bits(6));
+			data.push_byte(0b10000110 | bit << 3);
+		};
+		_actions[grules.push("opcode", "JP integer")] = [](data& data)
+		{
+			data.push_byte(0xC3);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "JP Name")] = [](data& data)
+		{
+			data.push_byte(0xC3);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(1);
+		};
+		_actions[grules.push("opcode", "JP cc ',' integer")] = [](data& data)
+		{
+			data.push_byte(0b11000010 | data._cc << 3);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "JP cc ',' Name")] = [](data& data)
+		{
+			data.push_byte(0b11000010 | data._cc << 3);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(3);
+		};
+		_actions[grules.push("opcode", "JR Name")] = [](data& data)
+		{
+			data.push_byte(0x18);
+			data.push_byte(0);
+			data.rel_label(1);
+		};
+		_actions[grules.push("opcode", "JR C ',' Name")] = [](data& data)
+		{
+			data.push_byte(0x38);
+			data.push_byte(0);
+			data.rel_label(3);
+		};
+		_actions[grules.push("opcode", "JR NC ',' Name")] = [](data& data)
+		{
+			data.push_byte(0x30);
+			data.push_byte(0);
+			data.rel_label(3);
+		};
+		_actions[grules.push("opcode", "JR Z ',' Name")] = [](data& data)
+		{
+			data.push_byte(0x28);
+			data.push_byte(0);
+			data.rel_label(3);
+		};
+		_actions[grules.push("opcode", "JR NZ ',' Name")] = [](data& data)
+		{
+			data.push_byte(0x20);
+			data.push_byte(0);
+			data.rel_label(3);
+		};
+		_actions[grules.push("opcode", "JP '(' HL ')'")] = [](data& data)
+		{
+			data.push_byte(0xE9);
+		};
+		_actions[grules.push("opcode", "JP '(' IX ')'")] = [](data& data)
+		{
+			data.push_byte(0xDD);
+			data.push_byte(0xE9);
+		};
+		_actions[grules.push("opcode", "JP '(' IY ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0xE9);
+		};
+		_actions[grules.push("opcode", "DJNZ Name")] = [](data& data)
+		{
+			data.push_byte(0x10);
+			data.push_byte(0);
+			data.rel_label(1);
+		};
+		_actions[grules.push("opcode", "CALL integer")] = [](data& data)
+		{
+			data.push_byte(0xCD);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "CALL Name")] = [](data& data)
+		{
+			data.push_byte(0xCD);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(1);
+		};
+		_actions[grules.push("opcode", "CALL cc ',' integer")] = [](data& data)
+		{
+			data.push_byte(0b11000100 | data._cc << 3);
+			data.push_word();
+		};
+		_actions[grules.push("opcode", "CALL cc ',' Name")] = [](data& data)
+		{
+			data.push_byte(0b11000100 | data._cc << 3);
+			data.push_byte(0);
+			data.push_byte(0);
+			data.wlabel(3);
+		};
+		_actions[grules.push("opcode", "RET")] = [](data& data)
+		{
+			data.push_byte(0xC9);
+		};
+		_actions[grules.push("opcode", "RET cc")] = [](data& data)
+		{
+			data.push_byte(0b11000000 | data._cc << 3);
+		};
+		_actions[grules.push("opcode", "RETI")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x4D);
+		};
+		_actions[grules.push("opcode", "RETN")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0x45);
+		};
+		// Integer is 0-7
+		_actions[grules.push("opcode", "RST Integer")] = [](data& data)
+		{
+			const int t = atoi(data.dollar(1).first);
+
+			if (t > 7)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(1).second);
+
+				throw std::out_of_range(str + ": Integer out of range");
+			}
+
+			data.push_byte(0b11000111 | t << 3);
+		};
+		_actions[grules.push("opcode", "IN r '(' C ')'")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0b01000000 | data._r << 3);
+		};
+		_actions[grules.push("opcode", "INI")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA2);
+		};
+		_actions[grules.push("opcode", "INIR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB2);
+		};
+		_actions[grules.push("opcode", "IND")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xAA);
+		};
+		_actions[grules.push("opcode", "INDR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xBA);
+		};
+		_actions[grules.push("opcode", "OUT '(' integer ')' ',' A")] = [](data& data)
+		{
+			data.push_byte(0xD3);
+			data.push_byte();
+		};
+		_actions[grules.push("opcode", "OUT '(' C ')' ',' r")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0b01000001 | data._r << 3);
+		};
+		_actions[grules.push("opcode", "OUTI")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xA3);
+		};
+		_actions[grules.push("opcode", "OTIR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xB3);
+		};
+		_actions[grules.push("opcode", "OUTD")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xAB);
+		};
+		_actions[grules.push("opcode", "OTDR")] = [](data& data)
+		{
+			data.push_byte(0xED);
+			data.push_byte(0xBB);
+		};
+
+		_actions[grules.push("r", "A")] = [](data& data)
+		{
+			data._r = 0b111;
+		};
+		_actions[grules.push("r", "B")] = [](data& data)
+		{
+			data._r = 0b000;
+		};
+		_actions[grules.push("r", "C")] = [](data& data)
+		{
+			data._r = 0b001;
+		};
+		_actions[grules.push("r", "D")] = [](data& data)
+		{
+			data._r = 0b010;
+		};
+		_actions[grules.push("r", "E")] = [](data& data)
+		{
+			data._r = 0b011;
+		};
+		_actions[grules.push("r", "H")] = [](data& data)
+		{
+			data._r = 0b100;
+		};
+		_actions[grules.push("r", "L")] = [](data& data)
+		{
+			data._r = 0b101;
+		};
+		_actions[grules.push("r2", "A")] = [](data& data)
+		{
+			data._r2 = 0b111;
+		};
+		_actions[grules.push("r2", "B")] = [](data& data)
+		{
+			data._r2 = 0b000;
+		};
+		_actions[grules.push("r2", "C")] = [](data& data)
+		{
+			data._r2 = 0b001;
+		};
+		_actions[grules.push("r2", "D")] = [](data& data)
+		{
+			data._r2 = 0b010;
+		};
+		_actions[grules.push("r2", "E")] = [](data& data)
+		{
+			data._r2 = 0b011;
+		};
+		_actions[grules.push("r2", "H")] = [](data& data)
+		{
+			data._r2 = 0b100;
+		};
+		_actions[grules.push("r2", "L")] = [](data& data)
+		{
+			data._r2 = 0b101;
+		};
+		_actions[grules.push("dd", "BC")] = [](data& data)
+		{
+			data._dd = 0b00;
+		};
+		_actions[grules.push("dd", "DE")] = [](data& data)
+		{
+			data._dd = 0b01;
+		};
+		_actions[grules.push("dd", "HL")] = [](data& data)
+		{
+			data._dd = 0b10;
+		};
+		_actions[grules.push("dd", "SP")] = [](data& data)
+		{
+			data._dd = 0b11;
+		};
+		_actions[grules.push("qq", "BC")] = [](data& data)
+		{
+			data._qq = 0b00;
+		};
+		_actions[grules.push("qq", "DE")] = [](data& data)
+		{
+			data._qq = 0b01;
+		};
+		_actions[grules.push("qq", "HL")] = [](data& data)
+		{
+			data._qq = 0b10;
+		};
+		_actions[grules.push("qq", "AF")] = [](data& data)
+		{
+			data._qq = 0b11;
+		};
+		_actions[grules.push("ss", "BC")] = [](data& data)
+		{
+			data._ss = 0b00;
+		};
+		_actions[grules.push("ss", "DE")] = [](data& data)
+		{
+			data._ss = 0b01;
+		};
+		_actions[grules.push("ss", "HL")] = [](data& data)
+		{
+			data._ss = 0b10;
+		};
+		_actions[grules.push("ss", "SP")] = [](data& data)
+		{
+			data._ss = 0b11;
+		};
+		_actions[grules.push("pp", "BC")] = [](data& data)
+		{
+			data._pp = 0b11;
+		};
+		_actions[grules.push("pp", "DE")] = [](data& data)
+		{
+			data._pp = 0b01;
+		};
+		_actions[grules.push("pp", "IX")] = [](data& data)
+		{
+			data._pp = 0b10;
+		};
+		_actions[grules.push("pp", "SP")] = [](data& data)
+		{
+			data._pp = 0b11;
+		};
+		_actions[grules.push("rr", "BC")] = [](data& data)
+		{
+			data._rr = 0b00;
+		};
+		_actions[grules.push("rr", "DE")] = [](data& data)
+		{
+			data._rr = 0b01;
+		};
+		_actions[grules.push("rr", "IY")] = [](data& data)
+		{
+			data._rr = 0b10;
+		};
+		_actions[grules.push("rr", "SP")] = [](data& data)
+		{
+			data._rr = 0b11;
+		};
+		_actions[grules.push("cc", "NZ")] = [](data& data)
+		{
+			data._cc = 0b000;
+		};
+		_actions[grules.push("cc", "Z")] = [](data& data)
+		{
+			data._cc = 0b001;
+		};
+		_actions[grules.push("cc", "NC")] = [](data& data)
+		{
+			data._cc = 0b010;
+		};
+		_actions[grules.push("cc", "C")] = [](data& data)
+		{
+			data._cc = 0b011;
+		};
+		_actions[grules.push("cc", "PO")] = [](data& data)
+		{
+			data._cc = 0b100;
+		};
+		_actions[grules.push("cc", "PE")] = [](data& data)
+		{
+			data._cc = 0b101;
+		};
+		_actions[grules.push("cc", "P")] = [](data& data)
+		{
+			data._cc = 0b110;
+		};
+		_actions[grules.push("cc", "M")] = [](data& data)
+		{
+			data._cc = 0b111;
+		};
+
+		_actions[grules.push("integer", "Binary")] = [](data& data)
+		{
+			const auto& t = data.dollar(0);
+			char* end = nullptr;
+
+			if (*t.first == '%')
+				data._integer = static_cast<uint8_t>(strtol(t.first + 1, &end, 2));
+			else
+				data._integer = static_cast<uint8_t>(strtol(t.first, &end, 2));
+		};
+		_actions[grules.push("integer", "Hex")] = [](data& data)
+		{
+			const auto& t = data.dollar(0);
+			char* end = nullptr;
+
+			if (*t.first == '&' || *t.first == '$')
+				data._integer = static_cast<uint16_t>(strtol(t.first + 1, &end, 16));
+			else
+				data._integer = static_cast<uint16_t>(strtol(t.first, &end, 16));
+		};
+		_actions[grules.push("integer", "Integer")] = [](data& data)
+		{
+			const auto& t = data.dollar(0);
+
+			data._integer = atoi(t.first);
+		};
+
+		parsertl::generator::build(grules, _gsm, &warnings);
+
+		if (!warnings.empty())
+			throw std::runtime_error(warnings);
+
+		lrules.push("[(]", grules.token_id("'('"));
+		lrules.push("[)]", grules.token_id("')'"));
+		lrules.push("[+]", grules.token_id("'+'"));
+		lrules.push(",", grules.token_id("','"));
+		lrules.push(":", grules.token_id("':'"));
+		lrules.push("[.]?ORG", grules.token_id("ORG"));
+		lrules.push("A", grules.token_id("A"));
+		lrules.push("ADC", grules.token_id("ADC"));
+		lrules.push("ADD", grules.token_id("ADD"));
+		lrules.push("AF", grules.token_id("AF"));
+		lrules.push("AND", grules.token_id("AND"));
+		lrules.push("B", grules.token_id("B"));
+		lrules.push("BC", grules.token_id("BC"));
+		lrules.push("BIT", grules.token_id("BIT"));
+		lrules.push("C", grules.token_id("C"));
+		lrules.push("CALL", grules.token_id("CALL"));
+		lrules.push("CCF", grules.token_id("CCF"));
+		lrules.push("CP", grules.token_id("CP"));
+		lrules.push("CPD", grules.token_id("CPD"));
+		lrules.push("CPDR", grules.token_id("CPDR"));
+		lrules.push("CPI", grules.token_id("CPI"));
+		lrules.push("CPIR", grules.token_id("CPIR"));
+		lrules.push("CPL", grules.token_id("CPL"));
+		lrules.push("D", grules.token_id("D"));
+		lrules.push("DB", grules.token_id("DB"));
+		lrules.push("DW", grules.token_id("DW"));
+		lrules.push("DAA", grules.token_id("DAA"));
+		lrules.push("DE", grules.token_id("DE"));
+		lrules.push("DEC", grules.token_id("DEC"));
+		lrules.push("DI", grules.token_id("DI"));
+		lrules.push("DJNZ", grules.token_id("DJNZ"));
+		lrules.push("E", grules.token_id("E"));
+		lrules.push("EI", grules.token_id("EI"));
+		lrules.push("EX", grules.token_id("EX"));
+		lrules.push("EXX", grules.token_id("EXX"));
+		lrules.push("H", grules.token_id("H"));
+		lrules.push("HALT", grules.token_id("HALT"));
+		lrules.push("HL", grules.token_id("HL"));
+		lrules.push("I", grules.token_id("I"));
+		lrules.push("IM", grules.token_id("IM"));
+		lrules.push("IN", grules.token_id("IN"));
+		lrules.push("INC", grules.token_id("INC"));
+		lrules.push("IND", grules.token_id("IND"));
+		lrules.push("INDR", grules.token_id("INDR"));
+		lrules.push("INI", grules.token_id("INI"));
+		lrules.push("INIR", grules.token_id("INIR"));
+		lrules.push("IX", grules.token_id("IX"));
+		lrules.push("IY", grules.token_id("IY"));
+		lrules.push("JP", grules.token_id("JP"));
+		lrules.push("JR", grules.token_id("JR"));
+		lrules.push("L", grules.token_id("L"));
+		lrules.push("LD", grules.token_id("LD"));
+		lrules.push("LDD", grules.token_id("LDD"));
+		lrules.push("LDDR", grules.token_id("LDDR"));
+		lrules.push("LDI", grules.token_id("LDI"));
+		lrules.push("LDIR", grules.token_id("LDIR"));
+		lrules.push("M", grules.token_id("M"));
+		lrules.push("NC", grules.token_id("NC"));
+		lrules.push("NEG", grules.token_id("NEG"));
+		lrules.push("NOP", grules.token_id("NOP"));
+		lrules.push("NZ", grules.token_id("NZ"));
+		lrules.push("OR", grules.token_id("OR"));
+		lrules.push("OTDR", grules.token_id("OTDR"));
+		lrules.push("OTIR", grules.token_id("OTIR"));
+		lrules.push("OUT", grules.token_id("OUT"));
+		lrules.push("OUTD", grules.token_id("OUTD"));
+		lrules.push("OUTI", grules.token_id("OUTI"));
+		lrules.push("P", grules.token_id("P"));
+		lrules.push("PE", grules.token_id("PE"));
+		lrules.push("PO", grules.token_id("PO"));
+		lrules.push("POP", grules.token_id("POP"));
+		lrules.push("PUSH", grules.token_id("PUSH"));
+		lrules.push("R", grules.token_id("R"));
+		lrules.push("RES", grules.token_id("RES"));
+		lrules.push("RET", grules.token_id("RET"));
+		lrules.push("RETI", grules.token_id("RETI"));
+		lrules.push("RETN", grules.token_id("RETN"));
+		lrules.push("RL", grules.token_id("RL"));
+		lrules.push("RLA", grules.token_id("RLA"));
+		lrules.push("RLC", grules.token_id("RLC"));
+		lrules.push("RLCA", grules.token_id("RLCA"));
+		lrules.push("RLD", grules.token_id("RLD"));
+		lrules.push("RR", grules.token_id("RR"));
+		lrules.push("RRA", grules.token_id("RRA"));
+		lrules.push("RRC", grules.token_id("RRC"));
+		lrules.push("RRCA", grules.token_id("RRCA"));
+		lrules.push("RRD", grules.token_id("RRD"));
+		lrules.push("RST", grules.token_id("RST"));
+		lrules.push("SBC", grules.token_id("SBC"));
+		lrules.push("SCF", grules.token_id("SCF"));
+		lrules.push("SET", grules.token_id("SET"));
+		lrules.push("SLA", grules.token_id("SLA"));
+		lrules.push("SP", grules.token_id("SP"));
+		lrules.push("SRA", grules.token_id("SRA"));
+		lrules.push("SRL", grules.token_id("SRL"));
+		lrules.push("SUB", grules.token_id("SUB"));
+		lrules.push("XOR", grules.token_id("XOR"));
+		lrules.push("Z", grules.token_id("Z"));
+		lrules.push("'", grules.token_id(R"('\'')"));
+		lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
+		lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
+		lrules.push(R"(\d+)", grules.token_id("Integer"));
+		lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
+		lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
+		lrules.push("\r?\n", grules.token_id("NL"));
+		lexertl::generator::build(lrules, _lsm);
+	}
+
+	void parse(const char* first, const char* second)
+	{
+		lexertl::citerator iter(first, second, _lsm);
+
+		_results.reset(iter->id, _gsm);
+
+		while (_results.entry.action != parsertl::action::error &&
+			_results.entry.action != parsertl::action::accept)
+		{
+			if (_results.entry.action == parsertl::action::reduce)
+			{
+				auto i = _actions.find(_results.entry.param);
+
+				if (i != _actions.end())
+				{
+					try
+					{
+						i->second(*this);
+					}
+					catch (const std::exception& e)
+					{
+						std::ostringstream ss;
+
+						ss << e.what() << " at line " <<
+							std::count(first, iter->first, '\n') + 1;
+						throw std::runtime_error(ss.str());
+					}
+				}
+			}
+
+			parsertl::lookup(_gsm, iter, _results, _productions);
+		}
+
+		if (_results.entry.action == parsertl::action::error)
+		{
+			std::cout << "Parser error, line " << std::count(first, iter->first, '\n') + 1 << '\n';
+		}
+		else
+		{
+			for (const auto& pair : _rel_set)
+			{
+				for (const auto idx : pair.second)
+				{
+					auto iter = _labels.find(pair.first);
+
+					if (iter == _labels.end())
+					{
+						throw std::runtime_error("Cannot find label '" + pair.first + '\'');
+					}
+					else
+					{
+						const int i = static_cast<int>(iter->second - (idx + 1));
+
+						if (i < -128 || i > 127)
+							throw std::runtime_error("Out of range relative call to '" +
+								pair.first + '\'');
+
+						_memory[idx] = static_cast<uint8_t>(i);
+					}
+				}
+			}
+
+			for (const auto& pair : _set)
+			{
+				for (const auto idx : pair.second)
+				{
+					auto iter = _labels.find(pair.first);
+
+					if (iter == _labels.end())
+					{
+						throw std::runtime_error("Cannot find label '" + pair.first + '\'');
+					}
+					else
+					{
+						uint16_t address = _org + iter->second;
+
+						_memory[idx] = address & 0xff;
+						_memory[idx + 1] = static_cast<uint8_t>(address >> 8);
+					}
+				}
+			}
+		}
+	}
 };
-
-static parsertl::state_machine g_gsm;
-static lexertl::state_machine g_lsm;
-static std::map<std::uint16_t, void (*)(data& data)> g_map;
-
-int eight_bits(const std::size_t idx, const std::size_t last, data& data)
-{
-	const int n =
-		atoi(data._results.dollar(g_gsm, idx, data._productions).first);
-
-	if (n > 255)
-	{
-		const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-			data._results.dollar(g_gsm, last, data._productions).second);
-
-		throw std::out_of_range(str + ": Integer out of range");
-	}
-
-	return n;
-}
-
-int sixteen_bits(const std::size_t idx, const std::size_t last, data& data)
-{
-	const int nn =
-		atoi(data._results.dollar(g_gsm, idx, data._productions).first);
-
-	if (nn > 65535)
-	{
-		const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-			data._results.dollar(g_gsm, last, data._productions).second);
-
-		throw std::out_of_range(str + ": Integer out of range");
-	}
-
-	return nn;
-}
-
-void build_parser()
-{
-	parsertl::rules grules;
-	lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
-	std::string warnings;
-
-	grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF CP CPD CPDR CPI "
-		"CPIR CPL D DAA DB DW DE DEC DI DJNZ E EI EX EXX H HALT Hex HL "
-		"Integer I IM IN INC IND INDR INI INIR IX IY JP JR L LD LDD LDDR LDI "
-		"LDIR M Name NC NEG NL NOP NZ OR ORG OTDR OTIR OUT OUTD OUTI P PE PO "
-		"PUSH POP R RES RET RETI RETN RL RLA RLC RLCA RLD RR RRA RRC RRCA RRD "
-		"RST SBC SCF SET SLA SP SRA SRL SUB XOR Z");
-	grules.push("opcodes", "%empty "
-		"| opcodes opcode NL");
-	grules.push("opcode", "");
-	g_map[grules.push("opcode", "ORG integer")] = [](data& data)
-	{
-		data._org = data._integer;
-	};
-	grules.push("opcode", "label opt_colon opcode");
-	g_map[grules.push("label", "Name")] = [](data& data)
-	{
-		std::string name = data._results.dollar(g_gsm, 0, data._productions).str();
-		auto iter = data._labels.find(name);
-
-		if (iter != data._labels.end())
-		{
-			throw std::runtime_error(name + " already exists");
-		}
-
-		data._labels[name] = static_cast<uint16_t>(data._memory.size());
-	};
-	grules.push("opt_colon", "%empty | ':'");
-	grules.push("opcode", "DB db_list");
-	grules.push("opcode", "DW dw_list");
-	g_map[grules.push("db_list", "integer")] = [](data& data)
-	{
-		data._memory.push_back(static_cast<uint8_t>(data._integer));
-	};
-	g_map[grules.push("db_list", "db_list ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(static_cast<uint8_t>(data._integer));
-	};
-	g_map[grules.push("dw_list", "integer")] = [](data& data)
-	{
-		data.push_word();
-	};
-	g_map[grules.push("dw_list", "Name")] = [](data& data)
-	{
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 0, data._productions).str());
-	};
-	g_map[grules.push("dw_list", "db_list ',' integer")] = [](data& data)
-	{
-		data.push_word();
-	};
-	g_map[grules.push("dw_list", "db_list ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 2, data._productions).str());
-	};
-	g_map[grules.push("opcode", "LD r ',' r2")] = [](data& data)
-	{
-		data._memory.push_back(0b01000000 | data._r << 3 | data._r2);
-	};
-	g_map[grules.push("opcode", "LD r ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0b00000110 | data._r << 3);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD r ',' '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0b01000110 | data._r << 3);
-	};
-	g_map[grules.push("opcode", "LD r ',' '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0b01000110 | data._r << 3);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD r ',' '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0b01000110 | data._r << 3);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD '(' HL ')' ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0b01110000 | data._r);
-	};
-	g_map[grules.push("opcode", "LD '(' IX '+' integer ')' ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0b01110000 | data._r);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD '(' IY '+' integer ')' ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0b01110000 | data._r);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD '(' HL ')' ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0x36);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "LD '(' IX '+' integer ')' ',' Integer")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x36);
-		data.push_byte();
-		data._memory.push_back(eight_bits(7, 7, data));
-	};
-	g_map[grules.push("opcode", "LD '(' IY '+' integer ')' ',' Integer")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x36);
-		data.push_byte();
-		data._memory.push_back(eight_bits(7, 7, data));
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' '(' BC ')'")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0x0A);
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' '(' DE ')'")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0x1A);
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' '(' integer ')'")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0x3A);
-		data.push_word();
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' '(' Name ')'")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0x3A);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 4, data._productions).str());
-	};
-	g_map[grules.push("opcode", "LD '(' BC ')' ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0x02);
-	};
-	g_map[grules.push("opcode", "LD '(' DE ')' ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0x12);
-	};
-	g_map[grules.push("opcode", "LD '(' integer ')' ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0x32);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD '(' Name ')' ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0x32);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 2, data._productions).str());
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' I")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x57);
-	};
-	// Only A register is legal
-	g_map[grules.push("opcode", "LD r ',' R")] = [](data& data)
-	{
-		if (data._r != 0b111)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register A valid");
-		}
-
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x5F);
-	};
-	g_map[grules.push("opcode", "LD I ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x47);
-	};
-	g_map[grules.push("opcode", "LD R ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x4F);
-	};
-	g_map[grules.push("opcode", "LD dd ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0b00000001 | data._dd << 4);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD dd ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0b00000001 | data._dd << 4);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "LD IX ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x21);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD IY ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x21);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD dd ',' '(' integer ')'")] = [](data& data)
-	{
-		if (data._dd == 0b10)
-		{
-			data._memory.push_back(0x2A);
-		}
-		else
-		{
-			data._memory.push_back(0xED);
-			data._memory.push_back(0b01001011 | data._dd << 4);
-		}
-
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD dd ',' '(' Name ')'")] = [](data& data)
-	{
-		if (data._dd == 0b10)
-		{
-			data._memory.push_back(0x2A);
-		}
-		else
-		{
-			data._memory.push_back(0xED);
-			data._memory.push_back(0b01001011 | data._dd << 4);
-		}
-
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 4, data._productions).str());
-	};
-	g_map[grules.push("opcode", "LD IX ',' '(' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x2A);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD IY ',' '(' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x2A);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD '(' integer ')' ',' dd")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0b01000011 | data._dd << 4);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD '(' integer ')' ',' IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x22);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "LD '(' integer ')' ',' IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x22);
-		data.push_word();
-	};
-	// Only SP register is legal
-	g_map[grules.push("opcode", "LD dd ',' HL")] = [](data& data)
-	{
-		if (data._dd != 0b11)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register SP valid");
-		}
-
-		data._memory.push_back(0xF9);
-	};
-	// Only SP register is legal
-	g_map[grules.push("opcode", "LD dd ',' IX")] = [](data& data)
-	{
-		if (data._dd != 0b11)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register SP valid");
-		}
-
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xF9);
-	};
-	// Only SP register is legal
-	g_map[grules.push("opcode", "LD dd ',' IY")] = [](data& data)
-	{
-		if (data._dd != 0b11)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::runtime_error(str + ": Only register SP valid");
-		}
-
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xF9);
-	};
-	g_map[grules.push("opcode", "PUSH qq")] = [](data& data)
-	{
-		data._memory.push_back(0b11000101 | data._qq << 4);
-	};
-	g_map[grules.push("opcode", "PUSH IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xE5);
-	};
-	g_map[grules.push("opcode", "PUSH IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xE5);
-	};
-	g_map[grules.push("opcode", "POP qq")] = [](data& data)
-	{
-		data._memory.push_back(0b11000001 | data._qq << 4);
-	};
-	g_map[grules.push("opcode", "POP IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xE1);
-	};
-	g_map[grules.push("opcode", "POP IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xE1);
-	};
-	g_map[grules.push("opcode", "EX DE ',' HL")] = [](data& data)
-	{
-		data._memory.push_back(0xEB);
-	};
-	g_map[grules.push("opcode", R"(EX AF ',' AF '\'')")] = [](data& data)
-	{
-		data._memory.push_back(0x08);
-	};
-	g_map[grules.push("opcode", "EXX")] = [](data& data)
-	{
-		data._memory.push_back(0xD9);
-	};
-	g_map[grules.push("opcode", "EX '(' SP ')' ',' HL")] = [](data& data)
-	{
-		data._memory.push_back(0xE3);
-	};
-	g_map[grules.push("opcode", "EX '(' SP ')' ',' IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xE3);
-	};
-	g_map[grules.push("opcode", "EX '(' SP ')' ',' IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xE3);
-	};
-	g_map[grules.push("opcode", "LDI")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA0);
-	};
-	g_map[grules.push("opcode", "LDIR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB0);
-	};
-	g_map[grules.push("opcode", "LDD")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA8);
-	};
-	g_map[grules.push("opcode", "LDDR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB8);
-	};
-	g_map[grules.push("opcode", "CPI")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA1);
-	};
-	g_map[grules.push("opcode", "CPIR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB1);
-	};
-	g_map[grules.push("opcode", "CPD")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA9);
-	};
-	g_map[grules.push("opcode", "CPDR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB9);
-	};
-	g_map[grules.push("opcode", "ADD A ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0b10000000 | data._r);
-	};
-	g_map[grules.push("opcode", "ADD A ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0b11000110);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "ADD A ',' '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0b10000110);
-	};
-	g_map[grules.push("opcode", "ADD A ',' '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x86);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "ADD A ',' '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x86);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "ADC A ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0b10001000 | data._r);
-	};
-	g_map[grules.push("opcode", "ADC A ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0xCE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "ADC A ',' '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0x8E);
-	};
-	g_map[grules.push("opcode", "ADC A ',' '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x8E);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SUB r")] = [](data& data)
-	{
-		data._memory.push_back(0b10010000 | data._r);
-	};
-	g_map[grules.push("opcode", "SUB integer")] = [](data& data)
-	{
-		data._memory.push_back(0xd6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SUB '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0x96);
-	};
-	g_map[grules.push("opcode", "SUB '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x96);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SUB '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x96);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SBC A ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0b10011000 | data._r);
-	};
-	g_map[grules.push("opcode", "SBC A ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0xDE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SBC A ',' '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0b10011110);
-	};
-	g_map[grules.push("opcode", "SBC A ',' '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x9E);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "SBC A ',' '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x9E);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "AND r")] = [](data& data)
-	{
-		data._memory.push_back(0b10100000 | data._r);
-	};
-	g_map[grules.push("opcode", "AND integer")] = [](data& data)
-	{
-		data._memory.push_back(0xE6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "AND '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xA6);
-	};
-	g_map[grules.push("opcode", "AND '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xA6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "AND '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xA6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "OR r")] = [](data& data)
-	{
-		data._memory.push_back(0b10110000 | data._r);
-	};
-	g_map[grules.push("opcode", "OR integer")] = [](data& data)
-	{
-		data._memory.push_back(0xF6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "OR '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xB6);
-	};
-	g_map[grules.push("opcode", "OR '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xB6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "OR '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xB6);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "XOR r")] = [](data& data)
-	{
-		data._memory.push_back(0b10101000 | data._r);
-	};
-	g_map[grules.push("opcode", "XOR integer")] = [](data& data)
-	{
-		data._memory.push_back(0xEE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "XOR '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xAE);
-	};
-	g_map[grules.push("opcode", "XOR '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xAE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "XOR '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xAE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "CP r")] = [](data& data)
-	{
-		data._memory.push_back(0b10111000 | data._r);
-	};
-	g_map[grules.push("opcode", "CP integer")] = [](data& data)
-	{
-		data._memory.push_back(0xFE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "CP '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xBE);
-	};
-	g_map[grules.push("opcode", "CP '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xBE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "CP '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xBE);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "INC r")] = [](data& data)
-	{
-		data._memory.push_back(0b00000100 | data._r << 3);
-	};
-	g_map[grules.push("opcode", "INC '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0x34);
-	};
-	g_map[grules.push("opcode", "INC '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x34);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "INC '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x34);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "DEC r")] = [](data& data)
-	{
-		data._memory.push_back(0b00000101 | data._r << 3);
-	};
-	g_map[grules.push("opcode", "DEC '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0x35);
-	};
-	g_map[grules.push("opcode", "DEC '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x35);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "DEC '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x35);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "DAA")] = [](data& data)
-	{
-		data._memory.push_back(0x27);
-	};
-	g_map[grules.push("opcode", "CPL")] = [](data& data)
-	{
-		data._memory.push_back(0x2F);
-	};
-	g_map[grules.push("opcode", "NEG")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x44);
-	};
-	g_map[grules.push("opcode", "CCF")] = [](data& data)
-	{
-		data._memory.push_back(0x3F);
-	};
-	g_map[grules.push("opcode", "SCF")] = [](data& data)
-	{
-		data._memory.push_back(0x37);
-	};
-	g_map[grules.push("opcode", "NOP")] = [](data& data)
-	{
-		data._memory.push_back(0);
-	};
-	g_map[grules.push("opcode", "HALT")] = [](data& data)
-	{
-		data._memory.push_back(0x76);
-	};
-	g_map[grules.push("opcode", "DI")] = [](data& data)
-	{
-		data._memory.push_back(0xF3);
-	};
-	g_map[grules.push("opcode", "EI")] = [](data& data)
-	{
-		data._memory.push_back(0xFB);
-	};
-	// Integer can be 0, 1, 2
-	g_map[grules.push("opcode", "IM Integer")] = [](data& data)
-	{
-		const int i = atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		switch (i)
-		{
-		case 0:
-			data._memory.push_back(0xED);
-			data._memory.push_back(0x46);
-			break;
-		case 1:
-			data._memory.push_back(0xED);
-			data._memory.push_back(0x56);
-			break;
-		case 2:
-			data._memory.push_back(0xED);
-			data._memory.push_back(0x5E);
-			break;
-		default:
-			throw std::out_of_range(std::string(data._results.
-				dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 1, data._productions).second) +
-				": Integer out of range");
-		}
-	};
-	g_map[grules.push("opcode", "ADD HL ',' ss")] = [](data& data)
-	{
-		data._memory.push_back(0b00001001 | data._ss << 4);
-	};
-	g_map[grules.push("opcode", "ADC HL ',' dd")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0b01001010 | data._dd << 4);
-	};
-	g_map[grules.push("opcode", "SBC HL ',' dd")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0b01000010 | data._dd << 4);
-	};
-	g_map[grules.push("opcode", "ADD IX ',' pp")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0b00001001 | data._pp << 4);
-	};
-	g_map[grules.push("opcode", "ADD IY ',' rr")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0b00001001 | data._rr << 4);
-	};
-	g_map[grules.push("opcode", "INC ss")] = [](data& data)
-	{
-		data._memory.push_back(0b00000011 | data._ss << 4);
-	};
-	g_map[grules.push("opcode", "INC IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x23);
-	};
-	g_map[grules.push("opcode", "INC IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x23);
-	};
-	g_map[grules.push("opcode", "DEC ss")] = [](data& data)
-	{
-		data._memory.push_back(0b00001011 | data._ss << 4);
-	};
-	g_map[grules.push("opcode", "DEC IX")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0x2B);
-	};
-	g_map[grules.push("opcode", "DEC IY")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0x2B);
-	};
-	g_map[grules.push("opcode", "RLCA")] = [](data& data)
-	{
-		data._memory.push_back(0x07);
-	};
-	g_map[grules.push("opcode", "RLA")] = [](data& data)
-	{
-		data._memory.push_back(0x17);
-	};
-	g_map[grules.push("opcode", "RRCA")] = [](data& data)
-	{
-		data._memory.push_back(0x0F);
-	};
-	g_map[grules.push("opcode", "RRA")] = [](data& data)
-	{
-		data._memory.push_back(0x1F);
-	};
-	g_map[grules.push("opcode", "RLC r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(data._r);
-	};
-	g_map[grules.push("opcode", "RLC '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x06);
-	};
-	g_map[grules.push("opcode", "RLC '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x06);
-	};
-	g_map[grules.push("opcode", "RLC '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x06);
-	};
-	g_map[grules.push("opcode", "RL r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00010000 | data._r);
-	};
-	g_map[grules.push("opcode", "RL '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x16);
-	};
-	g_map[grules.push("opcode", "RL '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x16);
-	};
-	g_map[grules.push("opcode", "RL '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x16);
-	};
-	g_map[grules.push("opcode", "RRC r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00001000 | data._r);
-	};
-	g_map[grules.push("opcode", "RRC '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x0E);
-	};
-	g_map[grules.push("opcode", "RRC '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x0E);
-	};
-	g_map[grules.push("opcode", "RRC '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x0E);
-	};
-	g_map[grules.push("opcode", "RR r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00001000 | data._r);
-	};
-	g_map[grules.push("opcode", "RR '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x1E);
-	};
-	g_map[grules.push("opcode", "RR '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x1E);
-	};
-	g_map[grules.push("opcode", "RR '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x1E);
-	};
-	g_map[grules.push("opcode", "SLA r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00100000 | data._r);
-	};
-	g_map[grules.push("opcode", "SLA '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x26);
-	};
-	g_map[grules.push("opcode", "SLA '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x26);
-	};
-	g_map[grules.push("opcode", "SLA '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x26);
-	};
-	g_map[grules.push("opcode", "SRA r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00101000 | data._r);
-	};
-	g_map[grules.push("opcode", "SRA '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x2E);
-	};
-	g_map[grules.push("opcode", "SRA '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x2E);
-	};
-	g_map[grules.push("opcode", "SRA '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x2E);
-	};
-	g_map[grules.push("opcode", "SRL r")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b00111000 | data._r);
-	};
-	g_map[grules.push("opcode", "SRL '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0x3E);
-	};
-	g_map[grules.push("opcode", "SRL '(' IX '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x3E);
-	};
-	g_map[grules.push("opcode", "SRL '(' IY '+' integer ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data.push_byte();
-		data._memory.push_back(0x3E);
-	};
-	g_map[grules.push("opcode", "RLD")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x6F);
-	};
-	g_map[grules.push("opcode", "RRD")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x67);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "BIT Integer ',' r")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 3, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b01000000 | b << 3 | data._r);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "BIT Integer ',' '(' HL ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b01000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "BIT Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(6, 7, data));
-		data._memory.push_back(0b01000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "BIT Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(6, 7, data));
-		data._memory.push_back(0b01000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "SET Integer ',' r")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 3, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b11000000 | b << 3 | data._r);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "SET Integer ',' '(' HL ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b11000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "SET Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(1, 7, data));
-		data._memory.push_back(0b11000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "SET Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(1, 7, data));
-		data._memory.push_back(0b11000110 | b << 3);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "RES Integer ',' r")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 3, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b10000000 | b << 3 | data._r);
-	};
-	g_map[grules.push("opcode", "RES Integer ',' '(' HL ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 5, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xCB);
-		data._memory.push_back(0b10000110 | b << 3);
-	};
-	g_map[grules.push("opcode", "RES Integer ',' '(' IX '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(6, 7, data));
-		data._memory.push_back(0b10000110 | b << 3);
-	};
-	g_map[grules.push("opcode", "RES Integer ',' '(' IY '+' Integer ')'")] = [](data& data)
-	{
-		const int b =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (b > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 7, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xCB);
-		data._memory.push_back(eight_bits(6, 7, data));
-		data._memory.push_back(0b10000110 | b << 3);
-	};
-	g_map[grules.push("opcode", "JP integer")] = [](data& data)
-	{
-		data._memory.push_back(0xC3);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "JP Name")] = [](data& data)
-	{
-		data._memory.push_back(0xC3);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 1, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JP cc ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0b11000010 | data._cc << 3);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "JP cc ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0b11000010 | data._cc << 3);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JR Name")] = [](data& data)
-	{
-		data._memory.push_back(0x18);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 1, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JR C ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0x38);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JR NC ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0x30);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JR Z ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0x28);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JR NZ ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0x20);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "JP '(' HL ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xE9);
-	};
-	g_map[grules.push("opcode", "JP '(' IX ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xDD);
-		data._memory.push_back(0xE9);
-	};
-	g_map[grules.push("opcode", "JP '(' IY ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xFD);
-		data._memory.push_back(0xE9);
-	};
-	g_map[grules.push("opcode", "DJNZ Name")] = [](data& data)
-	{
-		data._memory.push_back(0x10);
-		data._memory.push_back(0);
-		data.rel_label(data._results.dollar(g_gsm, 1, data._productions).str());
-	};
-	g_map[grules.push("opcode", "CALL integer")] = [](data& data)
-	{
-		data._memory.push_back(0xCD);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "CALL Name")] = [](data& data)
-	{
-		data._memory.push_back(0xCD);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 1, data._productions).str());
-	};
-	g_map[grules.push("opcode", "CALL cc ',' integer")] = [](data& data)
-	{
-		data._memory.push_back(0b11000100 | data._cc << 3);
-		data.push_word();
-	};
-	g_map[grules.push("opcode", "CALL cc ',' Name")] = [](data& data)
-	{
-		data._memory.push_back(0b11000100 | data._cc << 3);
-		data._memory.push_back(0);
-		data._memory.push_back(0);
-		data.wlabel(data._results.dollar(g_gsm, 3, data._productions).str());
-	};
-	g_map[grules.push("opcode", "RET")] = [](data& data)
-	{
-		data._memory.push_back(0xC9);
-	};
-	g_map[grules.push("opcode", "RET cc")] = [](data& data)
-	{
-		data._memory.push_back(0b11000000 | data._cc << 3);
-	};
-	g_map[grules.push("opcode", "RETI")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x4D);
-	};
-	g_map[grules.push("opcode", "RETN")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0x45);
-	};
-	// Integer is 0-7
-	g_map[grules.push("opcode", "RST Integer")] = [](data& data)
-	{
-		const int t =
-			atoi(data._results.dollar(g_gsm, 1, data._productions).first);
-
-		if (t > 7)
-		{
-			const std::string str(data._results.dollar(g_gsm, 0, data._productions).first,
-				data._results.dollar(g_gsm, 1, data._productions).second);
-
-			throw std::out_of_range(str + ": Integer out of range");
-		}
-
-		data._memory.push_back(0b11000111 | t << 3);
-	};
-	g_map[grules.push("opcode", "IN r '(' C ')'")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0b01000000 | data._r << 3);
-	};
-	g_map[grules.push("opcode", "INI")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA2);
-	};
-	g_map[grules.push("opcode", "INIR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB2);
-	};
-	g_map[grules.push("opcode", "IND")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xAA);
-	};
-	g_map[grules.push("opcode", "INDR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xBA);
-	};
-	g_map[grules.push("opcode", "OUT '(' integer ')' ',' A")] = [](data& data)
-	{
-		data._memory.push_back(0xD3);
-		data.push_byte();
-	};
-	g_map[grules.push("opcode", "OUT '(' C ')' ',' r")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0b01000001 | data._r << 3);
-	};
-	g_map[grules.push("opcode", "OUTI")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xA3);
-	};
-	g_map[grules.push("opcode", "OTIR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xB3);
-	};
-	g_map[grules.push("opcode", "OUTD")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xAB);
-	};
-	g_map[grules.push("opcode", "OTDR")] = [](data& data)
-	{
-		data._memory.push_back(0xED);
-		data._memory.push_back(0xBB);
-	};
-
-	g_map[grules.push("r", "A")] = [](data& data)
-	{
-		data._r = 0b111;
-	};
-	g_map[grules.push("r", "B")] = [](data& data)
-	{
-		data._r = 0b000;
-	};
-	g_map[grules.push("r", "C")] = [](data& data)
-	{
-		data._r = 0b001;
-	};
-	g_map[grules.push("r", "D")] = [](data& data)
-	{
-		data._r = 0b010;
-	};
-	g_map[grules.push("r", "E")] = [](data& data)
-	{
-		data._r = 0b011;
-	};
-	g_map[grules.push("r", "H")] = [](data& data)
-	{
-		data._r = 0b100;
-	};
-	g_map[grules.push("r", "L")] = [](data& data)
-	{
-		data._r = 0b101;
-	};
-	g_map[grules.push("r2", "A")] = [](data& data)
-	{
-		data._r2 = 0b111;
-	};
-	g_map[grules.push("r2", "B")] = [](data& data)
-	{
-		data._r2 = 0b000;
-	};
-	g_map[grules.push("r2", "C")] = [](data& data)
-	{
-		data._r2 = 0b001;
-	};
-	g_map[grules.push("r2", "D")] = [](data& data)
-	{
-		data._r2 = 0b010;
-	};
-	g_map[grules.push("r2", "E")] = [](data& data)
-	{
-		data._r2 = 0b011;
-	};
-	g_map[grules.push("r2", "H")] = [](data& data)
-	{
-		data._r2 = 0b100;
-	};
-	g_map[grules.push("r2", "L")] = [](data& data)
-	{
-		data._r2 = 0b101;
-	};
-	g_map[grules.push("dd", "BC")] = [](data& data)
-	{
-		data._dd = 0b00;
-	};
-	g_map[grules.push("dd", "DE")] = [](data& data)
-	{
-		data._dd = 0b01;
-	};
-	g_map[grules.push("dd", "HL")] = [](data& data)
-	{
-		data._dd = 0b10;
-	};
-	g_map[grules.push("dd", "SP")] = [](data& data)
-	{
-		data._dd = 0b11;
-	};
-	g_map[grules.push("qq", "BC")] = [](data& data)
-	{
-		data._qq = 0b00;
-	};
-	g_map[grules.push("qq", "DE")] = [](data& data)
-	{
-		data._qq = 0b01;
-	};
-	g_map[grules.push("qq", "HL")] = [](data& data)
-	{
-		data._qq = 0b10;
-	};
-	g_map[grules.push("qq", "AF")] = [](data& data)
-	{
-		data._qq = 0b11;
-	};
-	g_map[grules.push("ss", "BC")] = [](data& data)
-	{
-		data._ss = 0b00;
-	};
-	g_map[grules.push("ss", "DE")] = [](data& data)
-	{
-		data._ss = 0b01;
-	};
-	g_map[grules.push("ss", "HL")] = [](data& data)
-	{
-		data._ss = 0b10;
-	};
-	g_map[grules.push("ss", "SP")] = [](data& data)
-	{
-		data._ss = 0b11;
-	};
-	g_map[grules.push("pp", "BC")] = [](data& data)
-	{
-		data._pp = 0b11;
-	};
-	g_map[grules.push("pp", "DE")] = [](data& data)
-	{
-		data._pp = 0b01;
-	};
-	g_map[grules.push("pp", "IX")] = [](data& data)
-	{
-		data._pp = 0b10;
-	};
-	g_map[grules.push("pp", "SP")] = [](data& data)
-	{
-		data._pp = 0b11;
-	};
-	g_map[grules.push("rr", "BC")] = [](data& data)
-	{
-		data._rr = 0b00;
-	};
-	g_map[grules.push("rr", "DE")] = [](data& data)
-	{
-		data._rr = 0b01;
-	};
-	g_map[grules.push("rr", "IY")] = [](data& data)
-	{
-		data._rr = 0b10;
-	};
-	g_map[grules.push("rr", "SP")] = [](data& data)
-	{
-		data._rr = 0b11;
-	};
-	g_map[grules.push("cc", "NZ")] = [](data& data)
-	{
-		data._cc = 0b000;
-	};
-	g_map[grules.push("cc", "Z")] = [](data& data)
-	{
-		data._cc = 0b001;
-	};
-	g_map[grules.push("cc", "NC")] = [](data& data)
-	{
-		data._cc = 0b010;
-	};
-	g_map[grules.push("cc", "C")] = [](data& data)
-	{
-		data._cc = 0b011;
-	};
-	g_map[grules.push("cc", "PO")] = [](data& data)
-	{
-		data._cc = 0b100;
-	};
-	g_map[grules.push("cc", "PE")] = [](data& data)
-	{
-		data._cc = 0b101;
-	};
-	g_map[grules.push("cc", "P")] = [](data& data)
-	{
-		data._cc = 0b110;
-	};
-	g_map[grules.push("cc", "M")] = [](data& data)
-	{
-		data._cc = 0b111;
-	};
-
-	g_map[grules.push("integer", "Binary")] = [](data& data)
-	{
-		const auto&t = data._results.dollar(g_gsm, 0, data._productions);
-		char* end = nullptr;
-
-		if (*t.first == '%')
-			data._integer = static_cast<uint8_t>(strtol(t.first + 1, &end, 2));
-		else
-			data._integer = static_cast<uint8_t>(strtol(t.first, &end, 2));
-	};
-	g_map[grules.push("integer", "Hex")] = [](data& data)
-	{
-		const auto& t = data._results.dollar(g_gsm, 0, data._productions);
-		char* end = nullptr;
-
-		if (*t.first == '&' || *t.first == '$')
-			data._integer = static_cast<uint16_t>(strtol(t.first + 1, &end, 16));
-		else
-			data._integer = static_cast<uint16_t>(strtol(t.first, &end, 16));
-	};
-	g_map[grules.push("integer", "Integer")] = [](data& data)
-	{
-		const auto& t = data._results.dollar(g_gsm, 0, data._productions);
-
-		data._integer = atoi(t.first);
-	};
-
-	parsertl::generator::build(grules, g_gsm, &warnings);
-
-	if (!warnings.empty())
-		throw std::runtime_error(warnings);
-
-	lrules.push("[(]", grules.token_id("'('"));
-	lrules.push("[)]", grules.token_id("')'"));
-	lrules.push("[+]", grules.token_id("'+'"));
-	lrules.push(",", grules.token_id("','"));
-	lrules.push(":", grules.token_id("':'"));
-	lrules.push("[.]?ORG", grules.token_id("ORG"));
-	lrules.push("A", grules.token_id("A"));
-	lrules.push("ADC", grules.token_id("ADC"));
-	lrules.push("ADD", grules.token_id("ADD"));
-	lrules.push("AF", grules.token_id("AF"));
-	lrules.push("AND", grules.token_id("AND"));
-	lrules.push("B", grules.token_id("B"));
-	lrules.push("BC", grules.token_id("BC"));
-	lrules.push("BIT", grules.token_id("BIT"));
-	lrules.push("C", grules.token_id("C"));
-	lrules.push("CALL", grules.token_id("CALL"));
-	lrules.push("CCF", grules.token_id("CCF"));
-	lrules.push("CP", grules.token_id("CP"));
-	lrules.push("CPD", grules.token_id("CPD"));
-	lrules.push("CPDR", grules.token_id("CPDR"));
-	lrules.push("CPI", grules.token_id("CPI"));
-	lrules.push("CPIR", grules.token_id("CPIR"));
-	lrules.push("CPL", grules.token_id("CPL"));
-	lrules.push("D", grules.token_id("D"));
-	lrules.push("DB", grules.token_id("DB"));
-	lrules.push("DW", grules.token_id("DW"));
-	lrules.push("DAA", grules.token_id("DAA"));
-	lrules.push("DE", grules.token_id("DE"));
-	lrules.push("DEC", grules.token_id("DEC"));
-	lrules.push("DI", grules.token_id("DI"));
-	lrules.push("DJNZ", grules.token_id("DJNZ"));
-	lrules.push("E", grules.token_id("E"));
-	lrules.push("EI", grules.token_id("EI"));
-	lrules.push("EX", grules.token_id("EX"));
-	lrules.push("EXX", grules.token_id("EXX"));
-	lrules.push("H", grules.token_id("H"));
-	lrules.push("HALT", grules.token_id("HALT"));
-	lrules.push("HL", grules.token_id("HL"));
-	lrules.push("I", grules.token_id("I"));
-	lrules.push("IM", grules.token_id("IM"));
-	lrules.push("IN", grules.token_id("IN"));
-	lrules.push("INC", grules.token_id("INC"));
-	lrules.push("IND", grules.token_id("IND"));
-	lrules.push("INDR", grules.token_id("INDR"));
-	lrules.push("INI", grules.token_id("INI"));
-	lrules.push("INIR", grules.token_id("INIR"));
-	lrules.push("IX", grules.token_id("IX"));
-	lrules.push("IY", grules.token_id("IY"));
-	lrules.push("JP", grules.token_id("JP"));
-	lrules.push("JR", grules.token_id("JR"));
-	lrules.push("L", grules.token_id("L"));
-	lrules.push("LD", grules.token_id("LD"));
-	lrules.push("LDD", grules.token_id("LDD"));
-	lrules.push("LDDR", grules.token_id("LDDR"));
-	lrules.push("LDI", grules.token_id("LDI"));
-	lrules.push("LDIR", grules.token_id("LDIR"));
-	lrules.push("M", grules.token_id("M"));
-	lrules.push("NC", grules.token_id("NC"));
-	lrules.push("NEG", grules.token_id("NEG"));
-	lrules.push("NOP", grules.token_id("NOP"));
-	lrules.push("NZ", grules.token_id("NZ"));
-	lrules.push("OR", grules.token_id("OR"));
-	lrules.push("OTDR", grules.token_id("OTDR"));
-	lrules.push("OTIR", grules.token_id("OTIR"));
-	lrules.push("OUT", grules.token_id("OUT"));
-	lrules.push("OUTD", grules.token_id("OUTD"));
-	lrules.push("OUTI", grules.token_id("OUTI"));
-	lrules.push("P", grules.token_id("P"));
-	lrules.push("PE", grules.token_id("PE"));
-	lrules.push("PO", grules.token_id("PO"));
-	lrules.push("POP", grules.token_id("POP"));
-	lrules.push("PUSH", grules.token_id("PUSH"));
-	lrules.push("R", grules.token_id("R"));
-	lrules.push("RES", grules.token_id("RES"));
-	lrules.push("RET", grules.token_id("RET"));
-	lrules.push("RETI", grules.token_id("RETI"));
-	lrules.push("RETN", grules.token_id("RETN"));
-	lrules.push("RL", grules.token_id("RL"));
-	lrules.push("RLA", grules.token_id("RLA"));
-	lrules.push("RLC", grules.token_id("RLC"));
-	lrules.push("RLCA", grules.token_id("RLCA"));
-	lrules.push("RLD", grules.token_id("RLD"));
-	lrules.push("RR", grules.token_id("RR"));
-	lrules.push("RRA", grules.token_id("RRA"));
-	lrules.push("RRC", grules.token_id("RRC"));
-	lrules.push("RRCA", grules.token_id("RRCA"));
-	lrules.push("RRD", grules.token_id("RRD"));
-	lrules.push("RST", grules.token_id("RST"));
-	lrules.push("SBC", grules.token_id("SBC"));
-	lrules.push("SCF", grules.token_id("SCF"));
-	lrules.push("SET", grules.token_id("SET"));
-	lrules.push("SLA", grules.token_id("SLA"));
-	lrules.push("SP", grules.token_id("SP"));
-	lrules.push("SRA", grules.token_id("SRA"));
-	lrules.push("SRL", grules.token_id("SRL"));
-	lrules.push("SUB", grules.token_id("SUB"));
-	lrules.push("XOR", grules.token_id("XOR"));
-	lrules.push("Z", grules.token_id("Z"));
-	lrules.push("'", grules.token_id(R"('\'')"));
-	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
-	lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
-	lrules.push(R"(\d+)", grules.token_id("Integer"));
-	lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
-	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
-	lrules.push("\r?\n", grules.token_id("NL"));
-	lexertl::generator::build(lrules, g_lsm);
-}
-
-void parse(const char*first, const char* second, data& data)
-{
-	lexertl::citerator iter(first, second, g_lsm);
-
-	data._results.reset(iter->id, g_gsm);
-
-	while (data._results.entry.action != parsertl::action::error &&
-		data._results.entry.action != parsertl::action::accept)
-	{
-		if (data._results.entry.action == parsertl::action::reduce)
-		{
-			auto i = g_map.find(data._results.entry.param);
-
-			if (i != g_map.end())
-			{
-				try
-				{
-					i->second(data);
-				}
-				catch (const std::exception& e)
-				{
-					std::ostringstream ss;
-
-					ss << e.what() << " at line " <<
-						std::count(first, iter->first, '\n') + 1;
-					throw std::runtime_error(ss.str());
-				}
-			}
-		}
-
-		parsertl::lookup(g_gsm, iter, data._results, data._productions);
-	}
-
-	if (data._results.entry.action == parsertl::action::error)
-	{
-		std::cout << "Parser error, line " << std::count(first, iter->first, '\n') + 1 << '\n';
-	}
-	else
-	{
-		for (const auto& pair : data._rel_set)
-		{
-			for (const auto idx : pair.second)
-			{
-				auto iter = data._labels.find(pair.first);
-
-				if (iter == data._labels.end())
-				{
-					throw std::runtime_error("Cannot find label '" + pair.first + '\'');
-				}
-				else
-				{
-					const int i = static_cast<int>(iter->second - (idx + 1));
-
-					if (i < -128 || i > 127)
-						throw std::runtime_error("Out of range relative call to '" +
-							pair.first + '\'');
-
-					data._memory[idx] = static_cast<uint8_t>(i);
-				}
-			}
-		}
-
-		for (const auto& pair : data._set)
-		{
-			for (const auto idx : pair.second)
-			{
-				auto iter = data._labels.find(pair.first);
-
-				if (iter == data._labels.end())
-				{
-					throw std::runtime_error("Cannot find label '" + pair.first + '\'');
-				}
-				else
-				{
-					uint16_t address = data._org + iter->second;
-
-					data._memory[idx] = address & 0xff;
-					data._memory[idx + 1] = static_cast<uint8_t>(address >> 8);
-				}
-			}
-		}
-	}
-}
 
 std::ostringstream dump_IX_IY_bits(const uint8_t*& curr, const char xy)
 {
@@ -5357,9 +5369,12 @@ int main(int argc, const char* argv[])
 		if (!mf.data())
 			throw std::runtime_error("Unable to open " + std::string(argv[1]));
 
-		build_parser();
-		parse(mf.data(), mf.data() + mf.size(), data);
+		data.build_parser();
+		data.parse(mf.data(), mf.data() + mf.size());
 		mf.close();
+
+		if (data._org + data._memory.size() - 1 > 65535)
+			throw std::runtime_error("Code exceeds memory limit (65535)");
 
 		if (argc == 4)
 			save(data, argv[2], argv[3]);
