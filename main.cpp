@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "../parsertl14/include/parsertl/generator.hpp"
+#include <iterator>
 #include "../parsertl14/include/parsertl/match.hpp"
 #include "../lexertl14/include/lexertl/memory_file.hpp"
 #include <sstream>
@@ -136,12 +137,13 @@ struct data
 		lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
 		std::string warnings;
 
-		grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF CP CPD CPDR CPI "
-			"CPIR CPL D DAA DB DW DE DEC DI DJNZ E EI EX EXX H HALT Hex HL "
-			"Integer I IM IN INC IND INDR INI INIR IX IY JP JR L LD LDD LDDR LDI "
-			"LDIR M Name NC NEG NL NOP NZ OR ORG OTDR OTIR OUT OUTD OUTI P PE PO "
-			"PUSH POP R RES RET RETI RETN RL RLA RLC RLCA RLD RR RRA RRC RRCA RRD "
-			"RST SBC SCF SET SLA SP SRA SRL SUB XOR Z");
+		grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF Char CP CPD "
+			"CPDR CPI CPIR CPL D DAA DB DW DE DEC DI DJNZ E EI EX EXX H HALT "
+			"Hex HL Integer I IM IN INC IND INDR INI INIR IX IY JP JR L LD "
+			"LDD LDDR LDI LDIR M Name NC NEG NL NOP NZ OR ORG OTDR OTIR OUT "
+			"OUTD OUTI P PE PO PUSH POP R RES RET RETI RETN RL RLA RLC RLCA "
+			"RLD RR RRA RRC RRCA RRD RST SBC SCF SET SLA SP SRA SRL String "
+			"SUB XOR Z");
 		grules.push("opcodes", "%empty "
 			"| opcodes opcode NL");
 		grules.push("opcode", "");
@@ -169,9 +171,33 @@ struct data
 		{
 			data.push_byte();
 		};
+		_actions[grules.push("db_list", "String")] = [](data& data)
+		{
+			auto t = data.dollar(0);
+
+			++t.first;
+			--t.second;
+
+			for (const char* iter = t.first; iter != t.second; ++iter)
+			{
+				data.push_byte(static_cast<uint8_t>(*iter));
+			}
+		};
 		_actions[grules.push("db_list", "db_list ',' integer")] = [](data& data)
 		{
 			data.push_byte();
+		};
+		_actions[grules.push("db_list", "db_list ',' String")] = [](data& data)
+		{
+			auto t = data.dollar(2);
+
+			++t.first;
+			--t.second;
+
+			for (const char* iter = t.first; iter != t.second; ++iter)
+			{
+				data.push_byte(static_cast<uint8_t>(*iter));
+			}
 		};
 		_actions[grules.push("dw_list", "integer")] = [](data& data)
 		{
@@ -1463,17 +1489,40 @@ struct data
 		// Integer is 0-7
 		_actions[grules.push("opcode", "RST Integer")] = [](data& data)
 		{
-			const int t = atoi(data.dollar(1).first);
+			int t = atoi(data.dollar(1).first);
+			uint8_t by = 0;
 
-			if (t > 7)
+			switch (t)
 			{
-				const std::string str(data.dollar(0).first,
-					data.dollar(1).second);
-
-				throw std::out_of_range(str + ": Integer out of range");
+			case 0x00:
+				by = 0b000;
+				break;
+			case 0x08:
+				by = 0b001;
+				break;
+			case 0x10:
+				by = 0b010;
+				break;
+			case 0x18:
+				by = 0b011;
+				break;
+			case 0x20:
+				by = 0b100;
+				break;
+			case 0x28:
+				by = 0b101;
+				break;
+			case 0x30:
+				by = 0b110;
+				break;
+			case 0x38:
+				by = 0b111;
+				break;
+			default:
+				throw std::out_of_range("Invalid value for RST");
 			}
 
-			data.push_byte(0b11000111 | t << 3);
+			data.push_byte(0b11000111 | by << 3);
 		};
 		_actions[grules.push("opcode", "IN r '(' C ')'")] = [](data& data)
 		{
@@ -1720,6 +1769,12 @@ struct data
 			else
 				data._integer = static_cast<uint16_t>(strtol(t.first, &end, 16));
 		};
+		_actions[grules.push("integer", "Char")] = [](data& data)
+		{
+			const auto& t = data.dollar(0);
+
+			data._integer = *(t.first + 1);
+		};
 		_actions[grules.push("integer", "Integer")] = [](data& data)
 		{
 			const auto& t = data.dollar(0);
@@ -1756,8 +1811,8 @@ struct data
 		lrules.push("CPIR", grules.token_id("CPIR"));
 		lrules.push("CPL", grules.token_id("CPL"));
 		lrules.push("D", grules.token_id("D"));
-		lrules.push("DB", grules.token_id("DB"));
-		lrules.push("DW", grules.token_id("DW"));
+		lrules.push("DB|DEFB", grules.token_id("DB"));
+		lrules.push("DW|DEFW", grules.token_id("DW"));
 		lrules.push("DAA", grules.token_id("DAA"));
 		lrules.push("DE", grules.token_id("DE"));
 		lrules.push("DEC", grules.token_id("DEC"));
@@ -1833,7 +1888,9 @@ struct data
 		lrules.push("'", grules.token_id(R"('\'')"));
 		lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 		lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
+		lrules.push("'[^']'", grules.token_id("Char"));
 		lrules.push(R"(\d+)", grules.token_id("Integer"));
+		lrules.push("'[^']{2,}'", grules.token_id("String"));
 		lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
 		lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
 		lrules.push("\r?\n", grules.token_id("NL"));
@@ -1875,7 +1932,12 @@ struct data
 
 		if (_results.entry.action == parsertl::action::error)
 		{
-			std::cout << "Parser error, line " << std::count(first, iter->first, '\n') + 1 << '\n';
+			auto start = std::reverse_iterator<const char *>(iter->first);
+			auto bol = std::find(start, std::reverse_iterator<const char *>(first), '\n');
+
+			std::cout << "Parser error, line " <<
+				std::count(first, iter->first, '\n') + 1 <<
+				" column " << bol - start + 1 << '\n';
 		}
 		else
 		{
