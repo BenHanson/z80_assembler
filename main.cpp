@@ -19,9 +19,9 @@ struct data
 	uint16_t _org = 23296;
 	std::map<std::string, uint16_t> _labels;
 	// Relative jumps
-	std::map<std::string, std::set<std::size_t>> _rel_set;
+	std::map<std::size_t, std::string> _relative_addr;
 	// absolute jumps
-	std::map<std::string, std::set<std::size_t>> _set;
+	std::map<std::size_t, std::string> _absolute_addr;
 	uint8_t _cc = ~0;
 	uint8_t _dd = ~0;
 	uint8_t _pp = ~0;
@@ -67,7 +67,7 @@ struct data
 
 		if (iter == _labels.end())
 		{
-			_rel_set[name].insert(_memory.size() - 1);
+			_relative_addr[_memory.size() - 1] = name;
 		}
 		else
 		{
@@ -87,7 +87,7 @@ struct data
 
 		if (iter == _labels.end())
 		{
-			_set[name].insert(_memory.size() - 2);
+			_absolute_addr[_memory.size() - 2] = name;
 		}
 		else
 		{
@@ -219,7 +219,7 @@ struct data
 			data.push_byte(0);
 			data.wlabel(2);
 		};
-		_actions[grules.push("opcode", "LD r ',' r2")] = [](data& data)
+		_actions[grules.push("opcode", R"(LD r ',' r2 '\'')")] = [](data& data)
 		{
 			// Made local var to prevent VC++ warning
 			const uint8_t by = 0b01000000 | data._r << 3 | data._r2;
@@ -438,6 +438,7 @@ struct data
 		{
 			if (data._dd == 0b10)
 			{
+				// HL
 				data.push_byte(0x2A);
 			}
 			else
@@ -464,8 +465,17 @@ struct data
 		};
 		_actions[grules.push("opcode", "LD '(' integer ')' ',' dd")] = [](data& data)
 		{
-			data.push_byte(0xED);
-			data.push_byte(0b01000011 | data._dd << 4);
+			// HL
+			if (data._dd == 0b10)
+			{
+				data.push_byte(0x22);
+			}
+			else
+			{
+				data.push_byte(0xED);
+				data.push_byte(0b01000011 | data._dd << 4);
+			}
+
 			data.push_word();
 		};
 		_actions[grules.push("opcode", "LD '(' integer ')' ',' IX")] = [](data& data)
@@ -626,7 +636,7 @@ struct data
 		};
 		_actions[grules.push("opcode", "ADD A ',' '(' HL ')'")] = [](data& data)
 		{
-			data.push_byte(0b10000110);
+			data.push_byte(0x86);
 		};
 		_actions[grules.push("opcode", "ADD A ',' '(' IX '+' integer ')'")] = [](data& data)
 		{
@@ -659,13 +669,19 @@ struct data
 			data.push_byte(0x8E);
 			data.push_byte();
 		};
+		_actions[grules.push("opcode", "ADC A ',' '(' IY '+' integer ')'")] = [](data& data)
+		{
+			data.push_byte(0xFD);
+			data.push_byte(0x8E);
+			data.push_byte();
+		};
 		_actions[grules.push("opcode", "SUB r")] = [](data& data)
 		{
 			data.push_byte(0b10010000 | data._r);
 		};
 		_actions[grules.push("opcode", "SUB integer")] = [](data& data)
 		{
-			data.push_byte(0xd6);
+			data.push_byte(0xD6);
 			data.push_byte();
 		};
 		_actions[grules.push("opcode", "SUB '(' HL ')'")] = [](data& data)
@@ -695,7 +711,7 @@ struct data
 		};
 		_actions[grules.push("opcode", "SBC A ',' '(' HL ')'")] = [](data& data)
 		{
-			data.push_byte(0b10011110);
+			data.push_byte(0x9E);
 		};
 		_actions[grules.push("opcode", "SBC A ',' '(' IX '+' integer ')'")] = [](data& data)
 		{
@@ -1524,6 +1540,20 @@ struct data
 
 			data.push_byte(0b11000111 | by << 3);
 		};
+		// Only A register is legal
+		_actions[grules.push("opcode", "IN r ',' '(' integer ')'")] = [](data& data)
+		{
+			if (data._r != 0b111)
+			{
+				const std::string str(data.dollar(0).first,
+					data.dollar(5).second);
+
+				throw std::runtime_error(str + ": Only register A valid");
+			}
+
+			data.push_byte(0xDB);
+			data.push_byte();
+		};
 		_actions[grules.push("opcode", "IN r '(' C ')'")] = [](data& data)
 		{
 			data.push_byte(0xED);
@@ -1772,8 +1802,93 @@ struct data
 		_actions[grules.push("integer", "Char")] = [](data& data)
 		{
 			const auto& t = data.dollar(0);
+			const char* first = t.first + 1;
+			uint8_t c = 0;
 
-			data._integer = *(t.first + 1);
+			if (*first == '\\')
+			{
+				++first;
+
+				switch (*first)
+				{
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					data._integer = 0;
+
+					for (int i = 0; i < 3; ++i)
+					{
+						data._integer *= 8;
+						data._integer += *first - '0';
+					}
+
+					break;
+				case 'a':
+					data._integer = '\a';
+					break;
+				case 'b':
+					data._integer = '\b';
+					break;
+				case 'e':
+					data._integer = 0x1b;
+					break;
+				case 'f':
+					data._integer = '\f';
+					break;
+				case 'n':
+					data._integer = '\n';
+					break;
+				case 'r':
+					data._integer = '\r';
+					break;
+				case 't':
+					data._integer = '\t';
+					break;
+				case 'v':
+					data._integer = '\v';
+					break;
+				case 'x':
+					data._integer = 0;
+
+					for (int i = 0; i < 2; ++i)
+					{
+						++first;
+						data._integer *= 10;
+
+						if (*first >= 'a' && *first <= 'f')
+							data._integer += *first - 'a' + 10;
+						else if (*first >= 'A' && *first <= 'F')
+							data._integer += *first - 'A' + 10;
+						else
+							data._integer += *first - '0';
+					}
+
+					break;
+				case '\\':
+					data._integer = '\\';
+					break;
+				case '\'':
+					data._integer = '\'';
+					break;
+				case '"':
+					data._integer = '"';
+					break;
+				case '?':
+					data._integer = '?';
+					break;
+				}
+			}
+			else
+			{
+				data._integer = *first;
+			}
 		};
 		_actions[grules.push("integer", "Integer")] = [](data& data)
 		{
@@ -1888,7 +2003,7 @@ struct data
 		lrules.push("'", grules.token_id(R"('\'')"));
 		lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 		lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
-		lrules.push("'[^']'", grules.token_id("Char"));
+		lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 		lrules.push(R"(\d+)", grules.token_id("Integer"));
 		lrules.push("'[^']{2,}'", grules.token_id("String"));
 		lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
@@ -1934,53 +2049,52 @@ struct data
 		{
 			auto start = std::reverse_iterator<const char *>(iter->first);
 			auto bol = std::find(start, std::reverse_iterator<const char *>(first), '\n');
+			auto eol = std::find(iter->first, iter->eoi, '\n');
+			std::string cmd((&*bol) + 1, eol[-1] == '\r' ? eol - 1 : eol);
+			std::ostringstream ss;
 
-			std::cout << "Parser error, line " <<
+			ss << "Parser error, line " <<
 				std::count(first, iter->first, '\n') + 1 <<
-				" column " << bol - start + 1 << '\n';
+				" column " << bol - start + 1 << '\n' <<
+				cmd << '\n' << std::string(bol - start, ' ') << '^';
+			throw std::runtime_error(ss.str());
 		}
 		else
 		{
-			for (const auto& pair : _rel_set)
+			for (const auto& pair : _relative_addr)
 			{
-				for (const auto idx : pair.second)
+				auto iter = _labels.find(pair.second);
+
+				if (iter == _labels.end())
 				{
-					auto iter = _labels.find(pair.first);
+					throw std::runtime_error("Cannot find label '" + pair.second + '\'');
+				}
+				else
+				{
+					const int off = static_cast<int>(iter->second - (pair.first + 1));
 
-					if (iter == _labels.end())
-					{
-						throw std::runtime_error("Cannot find label '" + pair.first + '\'');
-					}
-					else
-					{
-						const int i = static_cast<int>(iter->second - (idx + 1));
+					if (off < -128 || off > 127)
+						throw std::runtime_error("Out of range relative call to '" +
+							pair.first + '\'');
 
-						if (i < -128 || i > 127)
-							throw std::runtime_error("Out of range relative call to '" +
-								pair.first + '\'');
-
-						_memory[idx] = static_cast<uint8_t>(i);
-					}
+					_memory[pair.first] = static_cast<uint8_t>(off);
 				}
 			}
 
-			for (const auto& pair : _set)
+			for (const auto& pair : _absolute_addr)
 			{
-				for (const auto idx : pair.second)
+				auto iter = _labels.find(pair.second);
+
+				if (iter == _labels.end())
 				{
-					auto iter = _labels.find(pair.first);
+					throw std::runtime_error("Cannot find label '" + pair.second + '\'');
+				}
+				else
+				{
+					const uint16_t addr = _org + iter->second;
 
-					if (iter == _labels.end())
-					{
-						throw std::runtime_error("Cannot find label '" + pair.first + '\'');
-					}
-					else
-					{
-						uint16_t address = _org + iter->second;
-
-						_memory[idx] = address & 0xff;
-						_memory[idx + 1] = static_cast<uint8_t>(address >> 8);
-					}
+					_memory[pair.first] = addr & 0xff;
+					_memory[pair.first + 1] = static_cast<uint8_t>(addr >> 8);
 				}
 			}
 		}
