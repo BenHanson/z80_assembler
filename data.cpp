@@ -62,7 +62,11 @@ void data::build_parser()
 		"LD LDD LDDR LDI LDIR M Name NC NEG NL NOP NZ OR ORG OTDR OTIR "
 		"OUT OUTD OUTI P PE PO PUSH POP R RES RET RETI RETN RL RLA RLC "
 		"RLCA RLD RR RRA RRC RRCA RRD RST SBC SCF SET SLA SP SRA SRL "
-		"String SUB XOR Z");
+		"String SUB UMINUS XOR Z");
+	grules.left("'|' '&'");
+	grules.left("'+' '-'");
+	grules.left("'*' '/'");
+	grules.precedence("UMINUS");
 
 	grules.push("opcodes", "%empty "
 		"| opcodes opcode NL");
@@ -269,7 +273,7 @@ void data::build_parser()
 		if (data._r != 0b111)
 		{
 			const std::string str(data.dollar(0).first,
-				data.dollar(5).second);
+				data.dollar(3).second);
 
 			throw std::runtime_error(str + ": Only register A valid");
 		}
@@ -283,7 +287,7 @@ void data::build_parser()
 		if (data._r != 0b111)
 		{
 			const std::string str(data.dollar(0).first,
-				data.dollar(5).second);
+				data.dollar(3).second);
 
 			throw std::runtime_error(str + ": Only register A valid");
 		}
@@ -387,7 +391,7 @@ void data::build_parser()
 		if (data._dd != 0b11)
 		{
 			const std::string str(data.dollar(0).first,
-				data.dollar(5).second);
+				data.dollar(3).second);
 
 			throw std::runtime_error(str + ": Only register SP valid");
 		}
@@ -400,7 +404,7 @@ void data::build_parser()
 		if (data._dd != 0b11)
 		{
 			const std::string str(data.dollar(0).first,
-				data.dollar(5).second);
+				data.dollar(3).second);
 
 			throw std::runtime_error(str + ": Only register SP valid");
 		}
@@ -414,7 +418,7 @@ void data::build_parser()
 		if (data._dd != 0b11)
 		{
 			const std::string str(data.dollar(0).first,
-				data.dollar(5).second);
+				data.dollar(3).second);
 
 			throw std::runtime_error(str + ": Only register SP valid");
 		}
@@ -1527,8 +1531,13 @@ void data::build_parser()
 	};
 
 	grules.push("expr", "item "
+		"| expr '|' item "
+		"| expr '&' item "
 		"| expr '+' item "
-		"| expr '-' item");
+		"| expr '-' item "
+		"| expr '*' item "
+		"| expr '/' item "
+		"| '-' expr %prec UMINUS ");
 	grules.push("item", "Name "
 		"| integer");
 
@@ -1826,8 +1835,12 @@ void data::build_parser()
 
 	lrules.push("[(]", grules.token_id("'('"));
 	lrules.push("[)]", grules.token_id("')'"));
+	lrules.push("[|]", grules.token_id("'|'"));
+	lrules.push("&", grules.token_id("'&'"));
 	lrules.push("[+]", grules.token_id("'+'"));
 	lrules.push("-", grules.token_id("'-'"));
+	lrules.push("[*]", grules.token_id("'*'"));
+	lrules.push("[/]", grules.token_id("'/'"));
 	lrules.push(",", grules.token_id("','"));
 	lrules.push(":", grules.token_id("':'"));
 	lrules.push("[.]?ORG", grules.token_id("ORG"));
@@ -1926,11 +1939,11 @@ void data::build_parser()
 	lrules.push("Z", grules.token_id("Z"));
 	lrules.push("'", grules.token_id(R"('\'')"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
-	lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
+	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
 	lrules.push(R"('[^']{2,}'|\"[^"]{2,}\")", grules.token_id("String"));
-	lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
+	lrules.push("[_A-Z][0-9_A-Z]*", grules.token_id("Name"));
 	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
 	lrules.push("\r?\n", grules.token_id("NL"));
 	lexertl::generator::build(lrules, _lsm);
@@ -1942,10 +1955,27 @@ void data::build_expr_parser()
 	lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
 	std::string warnings;
 
-	grules.token("Binary Char Hex Integer Name");
+	grules.token("Binary Char Hex Integer Name UMINUS");
+	grules.left("'|' '&'");
 	grules.left("'+' '-'");
+	grules.left("'*' '/'");
+	grules.precedence("UMINUS");
 
 	grules.push("expr", "item");
+	_expr_actions[grules.push("expr", "expr '|' item")] = [](data& data)
+	{
+		auto rhs = data._acc.top();
+
+		data._acc.pop();
+		data._acc.top() |= rhs;
+	};
+	_expr_actions[grules.push("expr", "expr '&' item")] = [](data& data)
+	{
+		auto rhs = data._acc.top();
+
+		data._acc.pop();
+		data._acc.top() &= rhs;
+	};
 	_expr_actions[grules.push("expr", "expr '+' item")] = [](data& data)
 	{
 		auto rhs = data._acc.top();
@@ -1959,6 +1989,24 @@ void data::build_expr_parser()
 
 		data._acc.pop();
 		data._acc.top() -= rhs;
+	};
+	_expr_actions[grules.push("expr", "expr '*' item")] = [](data& data)
+	{
+		auto rhs = data._acc.top();
+
+		data._acc.pop();
+		data._acc.top() *= rhs;
+	};
+	_expr_actions[grules.push("expr", "expr '/' item")] = [](data& data)
+	{
+		auto rhs = data._acc.top();
+
+		data._acc.pop();
+		data._acc.top() /= rhs;
+	};
+	_expr_actions[grules.push("expr", "'-' expr %prec UMINUS")] = [](data& data)
+	{
+		data._acc.top() *= -1;
 	};
 	_expr_actions[grules.push("item", "Name")] = [](data& data)
 	{
@@ -2108,13 +2156,17 @@ void data::build_expr_parser()
 	if (!warnings.empty())
 		throw std::runtime_error(warnings);
 
+	lrules.push("[|]", grules.token_id("'|'"));
+	lrules.push("&", grules.token_id("'&'"));
 	lrules.push("[+]", grules.token_id("'+'"));
 	lrules.push("-", grules.token_id("'-'"));
+	lrules.push("[*]", grules.token_id("'*'"));
+	lrules.push("[/]", grules.token_id("'/'"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
-	lrules.push("[&$][0-9A-Fa-f]{1,4}|[0-9A-Fa-f]{1,4}h", grules.token_id("Hex"));
+	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
-	lrules.push("[_A-Z][0-9_A-Z]+", grules.token_id("Name"));
+	lrules.push("[_A-Z][0-9_A-Z]*", grules.token_id("Name"));
 	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
 	lexertl::generator::build(lrules, _expr_lsm);
 }
@@ -2168,8 +2220,7 @@ void data::parse(const char* first, const char* second)
 				++count;
 
 		ss << "Parser error, line " <<
-			std::count(first, iter->first, '\n') + 1 <<
-			" column " << bol - start + 1 << '\n' <<
+			std::count(first, iter->first, '\n') + 1 << '\n' <<
 			cmd << '\n' << std::string(count, ' ') << '^';
 		throw std::runtime_error(ss.str());
 	}

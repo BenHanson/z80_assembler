@@ -36,7 +36,7 @@ struct data
 	uint8_t _rr = ~0;
 	uint8_t _ss = ~0;
 	uint16_t _integer = ~0;
-	std::stack<uint16_t> _acc;
+	std::stack<int> _acc;
 	memory _memory;
 
 	auto dollar(const std::size_t index);
