@@ -17,7 +17,12 @@ void save(data& data, const char* src, const char* dest)
 
 		mf.close();
 		memcpy(ptr, &data._memory.front(), data._memory.size());
+
+#ifdef WIN32		
 		fopen_s(&fp, dest, "wb");
+#else
+		fp = fopen(dest, "wb");
+#endif
 
 		if (fp)
 		{
