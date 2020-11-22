@@ -20,7 +20,7 @@ struct data
 	token::token_vector _productions;
 	uint16_t _org = 23296;
 	std::map<std::string, uint16_t> _label;
-	std::map<std::string, std::string> _equ;
+	std::map<std::string, int> _equ;
 	// Relative jumps
 	std::map<std::size_t, std::string> _rel_addr;
 	// 8 bit expressions

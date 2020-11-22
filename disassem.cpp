@@ -1,14 +1,19 @@
 #include "data.h"
+#include "disassem.h"
 #include "../parsertl14/include/parsertl/generator.hpp"
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
-std::ostringstream dump_IX_IY_bits(const uint8_t*& curr, const char xy)
+[[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr, const char xy, const base base)
 {
 	std::ostringstream ret;
 	const uint16_t data = static_cast<uint16_t>(*curr);
 
 	++curr;
+
+	if (base == base::hex)
+		ret << std::hex;
 
 	switch (*curr)
 	{
@@ -205,84 +210,196 @@ std::ostringstream dump_IX_IY_bits(const uint8_t*& curr, const char xy)
 		ret << "SRL (I" << xy << " + " << data << "), A";
 		break;
 	case 0x40:
+		ret << "BIT 0, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x41:
+		ret << "BIT 0, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x42:
+		ret << "BIT 0, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x43:
+		ret << "BIT 0, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x44:
+		ret << "BIT 0, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x45:
-	case 0x46:
+		ret << "BIT 0, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x47:
+		ret << "BIT 0, (I" << xy << " + " << data << "), A";
+		break;
+	case 0x46:
 		ret << "BIT 0, (I" << xy << " + " << data << ")";
 		break;
 	case 0x48:
+		ret << "BIT 1, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x49:
+		ret << "BIT 1, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x4a:
+		ret << "BIT 1, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x4b:
+		ret << "BIT 1, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x4c:
+		ret << "BIT 1, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x4d:
+		ret << "BIT 1, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x4e:
-	case 0x4f:
 		ret << "BIT 1, (I" << xy << " + " << data << ")";
 		break;
+	case 0x4f:
+		ret << "BIT 1, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x50:
+		ret << "BIT 2, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x51:
+		ret << "BIT 2, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x52:
+		ret << "BIT 2, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x53:
+		ret << "BIT 2, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x54:
+		ret << "BIT 2, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x55:
+		ret << "BIT 2, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x56:
-	case 0x57:
 		ret << "BIT 2, (I" << xy << " + " << data << ")";
 		break;
+	case 0x57:
+		ret << "BIT 2, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x58:
+		ret << "BIT 3, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x59:
+		ret << "BIT 3, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x5a:
+		ret << "BIT 3, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x5b:
+		ret << "BIT 3, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x5c:
+		ret << "BIT 3, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x5d:
+		ret << "BIT 3, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x5e:
-	case 0x5f:
 		ret << "BIT 3, (I" << xy << " + " << data << ")";
 		break;
+	case 0x5f:
+		ret << "BIT 3, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x60:
+		ret << "BIT 4, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x61:
+		ret << "BIT 4, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x62:
+		ret << "BIT 4, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x63:
+		ret << "BIT 4, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x64:
+		ret << "BIT 4, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x65:
+		ret << "BIT 4, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x66:
-	case 0x67:
 		ret << "BIT 4, (I" << xy << " + " << data << ")";
 		break;
+	case 0x67:
+		ret << "BIT 4, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x68:
+		ret << "BIT 5, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x69:
+		ret << "BIT 5, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x6a:
+		ret << "BIT 5, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x6b:
+		ret << "BIT 5, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x6c:
+		ret << "BIT 5, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x6d:
+		ret << "BIT 5, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x6e:
-	case 0x6f:
 		ret << "BIT 5, (I" << xy << " + " << data << ")";
 		break;
+	case 0x6f:
+		ret << "BIT 5, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x70:
+		ret << "BIT 6, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x71:
+		ret << "BIT 6, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x72:
+		ret << "BIT 6, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x73:
+		ret << "BIT 6, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x74:
+		ret << "BIT 6, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x75:
+		ret << "BIT 6, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x76:
-	case 0x77:
 		ret << "BIT 6, (I" << xy << " + " << data << ")";
 		break;
+	case 0x77:
+		ret << "BIT 6, (I" << xy << " + " << data << "), A";
+		break;
 	case 0x78:
+		ret << "BIT 7, (I" << xy << " + " << data << "), B";
+		break;
 	case 0x79:
+		ret << "BIT 7, (I" << xy << " + " << data << "), C";
+		break;
 	case 0x7a:
+		ret << "BIT 7, (I" << xy << " + " << data << "), D";
+		break;
 	case 0x7b:
+		ret << "BIT 7, (I" << xy << " + " << data << "), E";
+		break;
 	case 0x7c:
+		ret << "BIT 7, (I" << xy << " + " << data << "), H";
+		break;
 	case 0x7d:
+		ret << "BIT 7, (I" << xy << " + " << data << "), L";
+		break;
 	case 0x7e:
-	case 0x7f:
 		ret << "BIT 7, (I" << xy << " + " << data << ")";
+		break;
+	case 0x7f:
+		ret << "BIT 7, (I" << xy << " + " << data << "), A";
 		break;
 	case 0x80:
 		ret << "RES 0, (I" << xy << " + " << data << "), B";
@@ -671,12 +788,15 @@ std::ostringstream dump_IX_IY_bits(const uint8_t*& curr, const char xy)
 	}
 
 	++curr;
-	return ret;
+	return ret.str();
 }
 
-std::string dump_IX_IY(const uint8_t*& curr, const char xy)
+[[nodiscard]] std::string dump_IX_IY(const uint8_t*& curr, const char xy, const base base)
 {
 	std::ostringstream ret;
+
+	if (base == base::hex)
+		ret << std::hex;
 
 	switch (*curr)
 	{
@@ -1071,7 +1191,7 @@ std::string dump_IX_IY(const uint8_t*& curr, const char xy)
 		curr += 2;
 		break;
 	case 0xcb:
-		dump_IX_IY_bits(++curr, xy);
+		ret << dump_IX_IY_bits(++curr, xy, base);
 		break;
 	case 0xe1:
 		ret << "POP I" << xy;
@@ -1101,7 +1221,7 @@ std::string dump_IX_IY(const uint8_t*& curr, const char xy)
 	return ret.str();
 }
 
-std::string dump_bits(const uint8_t*& curr)
+[[nodiscard]] std::string dump_bits(const uint8_t*& curr)
 {
 	std::ostringstream ret;
 
@@ -1881,9 +2001,12 @@ std::string dump_bits(const uint8_t*& curr)
 	return ret.str();
 }
 
-std::string dump_ext(const uint8_t*& curr)
+[[nodiscard]] std::string dump_ext(const uint8_t*& curr, const base base)
 {
 	std::ostringstream ret;
+
+	if (base == base::hex)
+		ret << std::hex;
 
 	switch (*curr)
 	{
@@ -2231,9 +2354,12 @@ std::string dump_ext(const uint8_t*& curr)
 	return ret.str();
 }
 
-void fetch_opcode(const uint8_t*& curr, std::string& line)
+void fetch_opcode(const uint8_t*& curr, std::string& line, const base base)
 {
 	std::ostringstream ss;
+
+	if (base == base::hex)
+		ss << std::hex;
 
 	switch (*curr)
 	{
@@ -3201,7 +3327,7 @@ void fetch_opcode(const uint8_t*& curr, std::string& line)
 		curr += 2;
 		break;
 	case 0xdd:
-		ss << dump_IX_IY(++curr, 'X');
+		ss << dump_IX_IY(++curr, 'X', base);
 		break;
 	case 0xde:
 		ss << "SBC A, ";
@@ -3276,7 +3402,7 @@ void fetch_opcode(const uint8_t*& curr, std::string& line)
 		curr += 2;
 		break;
 	case 0xed:
-		ss << dump_ext(++curr);
+		ss << dump_ext(++curr, base);
 		break;
 	case 0xee:
 		ss << "XOR ";
@@ -3351,7 +3477,7 @@ void fetch_opcode(const uint8_t*& curr, std::string& line)
 		curr += 2;
 		break;
 	case 0xfd:
-		dump_IX_IY(++curr, 'Y');
+		ss << dump_IX_IY(++curr, 'Y', base);
 		break;
 	case 0xfe:
 		ss << "CP ";
@@ -3369,7 +3495,7 @@ void fetch_opcode(const uint8_t*& curr, std::string& line)
 	line = ss.str();
 }
 
-void dump(const data& data)
+void dump(const data& data, const base base)
 {
 	std::size_t addr = data._org;
 	const uint8_t* first = &data._memory.front();
@@ -3383,18 +3509,34 @@ void dump(const data& data)
 		std::ostringstream ss;
 		std::size_t offset = 0;
 
-		fetch_opcode(first, line);
+		fetch_opcode(first, line, base);
 		offset = first - curr;
 
 		for (; curr < first; ++curr)
 		{
-			ss.width(3);
+			if (base == base::hex)
+			{
+				ss << std::hex << std::setfill('0');
+				ss.width(2);
+			}
+			else
+				ss.width(3);
+
 			ss << static_cast<int>(*curr) << ' ';
 		}
 
 		bytes = ss.str();
-		bytes.resize(5 * 4, ' ');
-		std::cout.width(5);
+		bytes.resize(static_cast<std::size_t>(5) *
+			static_cast<std::size_t>(base == base::hex ? 3 : 4), ' ');
+
+		if (base == base::hex)
+		{
+			std::cout << std::hex << std::setfill('0');
+			std::cout.width(4);
+		}
+		else
+			std::cout.width(5);
+
 		std::cout << addr << "   ";
 		std::cout << bytes << line;
 		addr += offset;

@@ -2,4 +2,10 @@
 
 #include "data.h"
 
-void dump(const data& data);
+enum class base
+{
+	decimal,
+	hex
+};
+
+void dump(const data& data, const base base);

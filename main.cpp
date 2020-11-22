@@ -66,7 +66,7 @@ int main(int argc, const char* argv[])
 		if (argc == 4)
 			save(data, argv[2], argv[3]);
 		else
-			dump(data);
+			dump(data, base::hex);
 
 		return 0;
 	}
