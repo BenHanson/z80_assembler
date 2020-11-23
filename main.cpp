@@ -1,9 +1,7 @@
-#include "data.h"
 #include "disassem.h"
 #include <iostream>
-#include <iterator>
 #include "../lexertl14/include/lexertl/memory_file.hpp"
-#include <sstream>
+#include "parsers.h"
 
 void save(data& data, const char* src, const char* dest)
 {
@@ -55,8 +53,7 @@ int main(int argc, const char* argv[])
 		if (!mf.data())
 			throw std::runtime_error("Unable to open " + std::string(argv[1]));
 
-		data.build_parser();
-		data.build_expr_parser();
+		build_parsers(data);
 		data.parse(mf.data(), mf.data() + mf.size());
 		mf.close();
 

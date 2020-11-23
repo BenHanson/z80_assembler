@@ -1,15 +1,14 @@
 #pragma once
 
 #include "../lexertl14/include/lexertl/iterator.hpp"
-#include "../parsertl14/include/parsertl/state_machine.hpp"
 #include "../parsertl14/include/parsertl/token.hpp"
 #include "../parsertl14/include/parsertl/match_results.hpp"
 
-using memory = std::vector<uint8_t>;
-using token = parsertl::token<lexertl::citerator>;
-
 struct data
 {
+	using memory = std::vector<uint8_t>;
+	using token = parsertl::token<lexertl::citerator>;
+
 	parsertl::state_machine _gsm;
 	lexertl::state_machine _lsm;
 	parsertl::state_machine _expr_gsm;
@@ -39,17 +38,14 @@ struct data
 	std::stack<int> _acc;
 	memory _memory;
 
-	auto dollar(const std::size_t index);
+	token dollar(const std::size_t index);
 	void push_byte();
 	void push_byte(const uint8_t by);
 	void push_word(const uint16_t w);
 	void rel_label(const std::size_t idx);
 	void bexpr(const int32_t idx);
 	void wexpr(const int32_t idx);
-	int eight_bits(const std::size_t idx);
-	int sixteen_bits(const std::size_t idx);
-	void build_parser();
-	void build_expr_parser();
+
 	void parse(const char* first, const char* second);
 	uint16_t parse_expr(const char* first, const char* second);
 };
