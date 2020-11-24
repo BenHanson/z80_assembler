@@ -124,9 +124,6 @@ void data::parse(const char* first, const char* second)
 			const uint16_t val = parse_expr(pair.second.c_str(),
 				pair.second.c_str() + pair.second.size());
 
-			if (val > 255)
-				throw std::runtime_error(pair.second + " gives a value > 255");
-
 			_memory[pair.first] = val & 0xff;
 		}
 

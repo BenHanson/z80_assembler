@@ -42,7 +42,7 @@ void build_parser(data& d)
 		data._label[name] = static_cast<uint16_t>(data._memory.size());
 	};
 	grules.push("opt_colon", "%empty | ':'");
-	d._actions[grules.push("opcode", "Name EQU expr")] = [](data& data)
+	d._actions[grules.push("opcode", "Name EQU expr2")] = [](data& data)
 	{
 		const auto& t = data.dollar(2);
 		const uint16_t val = data.parse_expr(t.first, t.second);
@@ -57,7 +57,7 @@ void build_parser(data& d)
 		data._memory.insert(data._memory.end(), t.second - t.first, 0);
 	};
 	grules.push("opcode", "DW dw_list");
-	d._actions[grules.push("db_list", "expr")] = [](data& data)
+	d._actions[grules.push("db_list", "expr2")] = [](data& data)
 	{
 		data.push_byte(0);
 		data.bexpr(0);
@@ -74,7 +74,7 @@ void build_parser(data& d)
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
 	};
-	d._actions[grules.push("db_list", "db_list ',' expr")] = [](data& data)
+	d._actions[grules.push("db_list", "db_list ',' expr2")] = [](data& data)
 	{
 		data.push_byte(0);
 		data.bexpr(2);
@@ -91,12 +91,12 @@ void build_parser(data& d)
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
 	};
-	d._actions[grules.push("dw_list", "expr")] = [](data& data)
+	d._actions[grules.push("dw_list", "expr2")] = [](data& data)
 	{
 		data.push_word(0);
 		data.wexpr(0);
 	};
-	d._actions[grules.push("dw_list", "dw_list ',' expr")] = [](data& data)
+	d._actions[grules.push("dw_list", "dw_list ',' expr2")] = [](data& data)
 	{
 		data.push_word(0);
 		data.wexpr(2);
@@ -2183,19 +2183,6 @@ void build_parser(data& d)
 		data.push_byte(0xBB);
 	};
 
-	grules.push("expr", "expr '|' expr "
-		"| expr '&' expr "
-		"| expr '+' expr "
-		"| expr '-' expr "
-		"| expr '*' expr "
-		"| expr '/' expr "
-		"| '-' expr %prec UMINUS "
-		"| Name "
-		"| Binary "
-		"| Hex "
-		"| Char "
-		"| Integer");
-
 	d._actions[grules.push("r", "A")] = [](data& data)
 	{
 		data._r = 0b111;
@@ -2364,6 +2351,29 @@ void build_parser(data& d)
 	{
 		data._cc = 0b111;
 	};
+
+	grules.push("expr", "expr '|' expr "
+		"| expr '&' expr "
+		"| expr '+' expr "
+		"| expr '-' expr "
+		"| expr '*' expr "
+		"| expr '/' expr "
+		"| '-' expr %prec UMINUS "
+		"| item");
+	grules.push("expr2", "expr2 '|' expr2 "
+		"| expr2 '&' expr2 "
+		"| expr2 '+' expr2 "
+		"| expr2 '-' expr2 "
+		"| expr2 '*' expr2 "
+		"| expr2 '/' expr2 "
+		"| '(' expr2 ')' "
+		"| '-' expr2 %prec UMINUS "
+		"| item");
+	grules.push("item", "Name "
+		"| Binary "
+		"| Hex "
+		"| Char "
+		"| Integer");
 
 	d._actions[grules.push("integer", "Binary")] = [](data& data)
 	{
@@ -2665,6 +2675,7 @@ void build_expr_parser(data& d)
 		data._acc.pop();
 		data._acc.top() /= rhs;
 	};
+	grules.push("expr", "'(' expr ')'");
 	d._expr_actions[grules.push("expr", "'-' expr %prec UMINUS")] = [](data& data)
 	{
 		data._acc.top() *= -1;
@@ -2823,6 +2834,8 @@ void build_expr_parser(data& d)
 	lrules.push("-", grules.token_id("'-'"));
 	lrules.push("[*]", grules.token_id("'*'"));
 	lrules.push("[/]", grules.token_id("'/'"));
+	lrules.push("[(]", grules.token_id("'('"));
+	lrules.push("[)]", grules.token_id("')'"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
