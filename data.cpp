@@ -113,8 +113,12 @@ void data::parse(const char* first, const char* second)
 			const int off = static_cast<int>(val - (_org + pair.first + 1));
 
 			if (off < -128 || off > 127)
-				throw std::runtime_error("Out of range relative call to '" +
-					pair.first + '\'');
+			{
+				std::ostringstream ss;
+
+				ss << "Out of range relative call to '" << pair.second << '\'';
+				throw std::runtime_error(ss.str());
+			}
 
 			_memory[pair.first] = static_cast<uint8_t>(off);
 		}
@@ -148,7 +152,6 @@ uint16_t data::parse_expr(const char* first, const char* second)
 	std::swap(results, _results);
 	std::swap(productions, _productions);
 	_results.reset(iter->id, _expr_gsm);
-	_productions.clear();
 
 	while (_results.entry.action != parsertl::action::error &&
 		_results.entry.action != parsertl::action::accept)

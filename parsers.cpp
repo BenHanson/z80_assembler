@@ -1,3 +1,4 @@
+#include <charconv>
 #include "parsers.h"
 
 #include "data.h"
@@ -53,8 +54,10 @@ void build_parser(data& d)
 	d._actions[grules.push("opcode", "DS integer")] = [](data& data)
 	{
 		const auto& t = data.dollar(1);
+		std::size_t val = 0;
+		std::from_chars(t.first, t.second, val);
 
-		data._memory.insert(data._memory.end(), t.second - t.first, 0);
+		data._memory.insert(data._memory.end(), val, 0);
 	};
 	grules.push("opcode", "DW dw_list");
 	d._actions[grules.push("db_list", "expr2")] = [](data& data)
@@ -1191,9 +1194,9 @@ void build_parser(data& d)
 				data.dollar(1).second) + ": Integer out of range");
 		}
 	};
-	d._actions[grules.push("opcode", "ADD HL ',' ss")] = [](data& data)
+	d._actions[grules.push("opcode", "ADD HL ',' dd")] = [](data& data)
 	{
-		data.push_byte(0b00001001 | data._ss << 4);
+		data.push_byte(0b00001001 | data._dd << 4);
 	};
 	d._actions[grules.push("opcode", "ADC HL ',' dd")] = [](data& data)
 	{
@@ -1215,9 +1218,9 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0b00001001 | data._rr << 4);
 	};
-	d._actions[grules.push("opcode", "INC ss")] = [](data& data)
+	d._actions[grules.push("opcode", "INC dd")] = [](data& data)
 	{
-		data.push_byte(0b00000011 | data._ss << 4);
+		data.push_byte(0b00000011 | data._dd << 4);
 	};
 	d._actions[grules.push("opcode", "INC IX")] = [](data& data)
 	{
@@ -1229,9 +1232,9 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0x23);
 	};
-	d._actions[grules.push("opcode", "DEC ss")] = [](data& data)
+	d._actions[grules.push("opcode", "DEC dd")] = [](data& data)
 	{
-		data.push_byte(0b00001011 | data._ss << 4);
+		data.push_byte(0b00001011 | data._dd << 4);
 	};
 	d._actions[grules.push("opcode", "DEC IX")] = [](data& data)
 	{
@@ -1976,27 +1979,9 @@ void build_parser(data& d)
 		data.push_byte(0);
 		data.rel_label(1);
 	};
-	d._actions[grules.push("opcode", "JR C ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "JR c ',' expr")] = [](data& data)
 	{
-		data.push_byte(0x38);
-		data.push_byte(0);
-		data.rel_label(3);
-	};
-	d._actions[grules.push("opcode", "JR NC ',' expr")] = [](data& data)
-	{
-		data.push_byte(0x30);
-		data.push_byte(0);
-		data.rel_label(3);
-	};
-	d._actions[grules.push("opcode", "JR Z ',' expr")] = [](data& data)
-	{
-		data.push_byte(0x28);
-		data.push_byte(0);
-		data.rel_label(3);
-	};
-	d._actions[grules.push("opcode", "JR NZ ',' expr")] = [](data& data)
-	{
-		data.push_byte(0x20);
+		data.push_byte(0b00100000 | data._c << 3);
 		data.push_byte(0);
 		data.rel_label(3);
 	};
@@ -2113,7 +2098,7 @@ void build_parser(data& d)
 		data.push_byte(0xED);
 		data.push_byte(0x70);
 	};
-	d._actions[grules.push("opcode", "IN r '(' C ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "IN r ',' '(' C ')'")] = [](data& data)
 	{
 		data.push_byte(0xED);
 		data.push_byte(0b01000000 | data._r << 3);
@@ -2271,22 +2256,6 @@ void build_parser(data& d)
 	{
 		data._qq = 0b11;
 	};
-	d._actions[grules.push("ss", "BC")] = [](data& data)
-	{
-		data._ss = 0b00;
-	};
-	d._actions[grules.push("ss", "DE")] = [](data& data)
-	{
-		data._ss = 0b01;
-	};
-	d._actions[grules.push("ss", "HL")] = [](data& data)
-	{
-		data._ss = 0b10;
-	};
-	d._actions[grules.push("ss", "SP")] = [](data& data)
-	{
-		data._ss = 0b11;
-	};
 	d._actions[grules.push("pp", "BC")] = [](data& data)
 	{
 		data._pp = 0b11;
@@ -2350,6 +2319,22 @@ void build_parser(data& d)
 	d._actions[grules.push("cc", "M")] = [](data& data)
 	{
 		data._cc = 0b111;
+	};
+	d._actions[grules.push("c", "C")] = [](data& data)
+	{
+		data._c = 0b11;
+	};
+	d._actions[grules.push("c", "NC")] = [](data& data)
+	{
+		data._c = 0b10;
+	};
+	d._actions[grules.push("c", "Z")] = [](data& data)
+	{
+		data._c = 0b01;
+	};
+	d._actions[grules.push("c", "NZ")] = [](data& data)
+	{
+		data._c = 0b00;
 	};
 
 	grules.push("expr", "expr '|' expr "
@@ -2527,7 +2512,7 @@ void build_parser(data& d)
 	lrules.push("CPIR", grules.token_id("CPIR"));
 	lrules.push("CPL", grules.token_id("CPL"));
 	lrules.push("D", grules.token_id("D"));
-	lrules.push("DB|DEFB", grules.token_id("DB"));
+	lrules.push("DB|DEFB|DEFM", grules.token_id("DB"));
 	lrules.push("DS|DEFS", grules.token_id("DS"));
 	lrules.push("DW|DEFW", grules.token_id("DW"));
 	lrules.push("DAA", grules.token_id("DAA"));
@@ -2614,7 +2599,7 @@ void build_parser(data& d)
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
-	lrules.push(R"('[^']{2,}'|\"[^"]{2,}\")", grules.token_id("String"));
+	lrules.push(R"('[^'\r\n]{2,}'|\"[^"\r\n]+\")", grules.token_id("String"));
 	lrules.push("[_A-Z][0-9_A-Z]*", grules.token_id("Name"));
 	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
 	lrules.push("\r?\n", grules.token_id("NL"));

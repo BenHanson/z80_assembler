@@ -27,13 +27,13 @@ struct data
 	// 16 bit expressions
 	std::map<std::size_t, std::string> _word_expr;
 	uint8_t _cc = ~0;
+	uint8_t _c = ~0;
 	uint8_t _dd = ~0;
 	uint8_t _pp = ~0;
 	uint8_t _qq = ~0;
 	uint8_t _r = ~0;
 	uint8_t _r2 = ~0;
 	uint8_t _rr = ~0;
-	uint8_t _ss = ~0;
 	uint16_t _integer = ~0;
 	std::stack<int> _acc;
 	memory _memory;
