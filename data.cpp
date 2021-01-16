@@ -41,7 +41,14 @@ void data::bexpr(const int32_t idx)
 {
 	const std::string name = dollar(idx).str();
 
-	_byte_expr[_memory.size() - 1] = name;
+	_byte_expr[_memory.size() - 1] = std::make_pair(name, '+');
+}
+
+void data::bexpr(const int32_t idx, const char op)
+{
+	const std::string name = dollar(idx).str();
+
+	_byte_expr[_memory.size() - 1] = std::make_pair(name, op);
 }
 
 void data::wexpr(const int32_t idx)
@@ -125,8 +132,11 @@ void data::parse(const char* first, const char* second)
 
 		for (const auto& pair : _byte_expr)
 		{
-			const uint16_t val = parse_expr(pair.second.c_str(),
-				pair.second.c_str() + pair.second.size());
+			uint16_t val = parse_expr(pair.second.first.c_str(),
+				pair.second.first.c_str() + pair.second.first.size());
+
+			if (pair.second.second == '-')
+				val *= -1;
 
 			_memory[pair.first] = val & 0xff;
 		}
@@ -174,4 +184,29 @@ uint16_t data::parse_expr(const char* first, const char* second)
 	ret = _acc.top();
 	_acc.pop();
 	return ret;
+}
+
+void data::clear()
+{
+	_org = 23296;
+	_label.clear();
+	_equ.clear();
+	_rel_addr.clear();
+	_byte_expr.clear();
+	_word_expr.clear();
+	_cc = ~0;
+	_c = ~0;
+	_dd = ~0;
+	_pp = ~0;
+	_qq = ~0;
+	_r = ~0;
+	_r2 = ~0;
+	_rr = ~0;
+	_integer = ~0;
+	_plus_minus = '+';
+
+	for (; !_acc.empty(); _acc.pop())
+		;
+
+	_memory.clear();
 }

@@ -17,13 +17,14 @@ struct data
 	std::map<std::uint16_t, void (*)(data& data)> _expr_actions;
 	parsertl::match_results _results;
 	token::token_vector _productions;
+
 	uint16_t _org = 23296;
 	std::map<std::string, uint16_t> _label;
 	std::map<std::string, int> _equ;
 	// Relative jumps
 	std::map<std::size_t, std::string> _rel_addr;
 	// 8 bit expressions
-	std::map<std::size_t, std::string> _byte_expr;
+	std::map<std::size_t, std::pair<std::string, char>> _byte_expr;
 	// 16 bit expressions
 	std::map<std::size_t, std::string> _word_expr;
 	uint8_t _cc = ~0;
@@ -35,6 +36,7 @@ struct data
 	uint8_t _r2 = ~0;
 	uint8_t _rr = ~0;
 	uint16_t _integer = ~0;
+	char _plus_minus = '+';
 	std::stack<int> _acc;
 	memory _memory;
 
@@ -44,8 +46,11 @@ struct data
 	void push_word(const uint16_t w);
 	void rel_label(const std::size_t idx);
 	void bexpr(const int32_t idx);
+	void bexpr(const int32_t idx, const char op);
 	void wexpr(const int32_t idx);
 
 	void parse(const char* first, const char* second);
 	uint16_t parse_expr(const char* first, const char* second);
+
+	void clear();
 };

@@ -10,7 +10,9 @@
 	++curr;
 
 	if (base == base::hex)
-		ret << std::hex;
+	{
+		ret << std::uppercase << std::hex << std::setfill('0') << std::setw(2);
+	}
 
 	switch (*curr)
 	{
@@ -793,7 +795,9 @@
 	std::ostringstream ret;
 
 	if (base == base::hex)
-		ret << std::hex;
+	{
+		ret << std::uppercase << std::hex;
+	}
 
 	switch (*curr)
 	{
@@ -807,16 +811,26 @@
 		break;
 	case 0x21:
 		ret << "LD I" << xy << ", ";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0x22:
 		ret << "LD (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << "), I" << xy;
+		curr += 2;
 		break;
 	case 0x23:
 		ret << "INC I" << xy;
@@ -832,8 +846,11 @@
 		break;
 	case 0x26:
 		ret << "LD I" << xy << "H, ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x29:
@@ -842,10 +859,13 @@
 		break;
 	case 0x2a:
 		ret << "LD I" << xy << ", (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << ')';
+		curr += 2;
 		break;
 	case 0x2b:
 		ret << "DEC I" << xy;
@@ -861,31 +881,46 @@
 		break;
 	case 0x2e:
 		ret << "LD I" << xy << "L, ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x34:
 		ret << "INC (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x35:
 		ret << "DEC (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x36:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x39:
@@ -902,9 +937,13 @@
 		break;
 	case 0x46:
 		ret << "LD B, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x4c:
 		ret << "LD C, I" << xy << 'H';
@@ -916,9 +955,13 @@
 		break;
 	case 0x4e:
 		ret << "LD C, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x54:
 		ret << "LD D, I" << xy << 'H';
@@ -930,9 +973,13 @@
 		break;
 	case 0x56:
 		ret << "LD D, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x5c:
 		ret << "LD E, I" << xy << 'H';
@@ -944,10 +991,13 @@
 		break;
 	case 0x5e:
 		ret << "LD E, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x60:
 		ret << "LD I" << xy << "H, B";
@@ -975,10 +1025,13 @@
 		break;
 	case 0x66:
 		ret << "LD H, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x67:
 		ret << "LD I" << xy << "H, A";
@@ -1010,10 +1063,13 @@
 		break;
 	case 0x6e:
 		ret << "LD L, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x6f:
 		ret << "LD I" << xy << "L, A";
@@ -1021,52 +1077,73 @@
 		break;
 	case 0x70:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), B";
+		++curr;
 		break;
 	case 0x71:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), C";
+		++curr;
 		break;
 	case 0x72:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), D";
+		++curr;
 		break;
 	case 0x73:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), E";
+		++curr;
 		break;
 	case 0x74:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), H";
+		++curr;
 		break;
 	case 0x75:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), L";
+		++curr;
 		break;
 	case 0x77:
 		ret << "LD (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << "), A";
+		++curr;
 		break;
 	case 0x7c:
 		ret << "LD A, I" << xy << 'H';
@@ -1078,10 +1155,13 @@
 		break;
 	case 0x7e:
 		ret << "LD A, (I" << xy << " + ";
-		++curr;
-		ret << static_cast<uint16_t>(*curr);
-		++curr;
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		ret << ')';
+		++curr;
 		break;
 	case 0x84:
 		ret << "ADD A, I" << xy << 'H';
@@ -1092,9 +1172,13 @@
 		++curr;
 		break;
 	case 0x86:
-		ret << "ADD A, (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "ADD A, (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0x8c:
 		ret << "ADC A, I" << xy << 'H';
@@ -1105,8 +1189,12 @@
 		++curr;
 		break;
 	case 0x8e:
-		ret << "ADC A, (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
+		ret << "ADC A, (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
 		++curr;
 		break;
 	case 0x94:
@@ -1118,9 +1206,13 @@
 		++curr;
 		break;
 	case 0x96:
-		ret << "SUB (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "SUB (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0x9c:
 		ret << "SBC A, I" << xy << 'H';
@@ -1131,9 +1223,13 @@
 		++curr;
 		break;
 	case 0x9e:
-		ret << "SBC A, (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "SBC A, (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0xa4:
 		ret << "AND I" << xy << 'H';
@@ -1144,9 +1240,13 @@
 		++curr;
 		break;
 	case 0xa6:
-		ret << "AND (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "AND (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0xac:
 		ret << "XOR I" << xy << 'H';
@@ -1157,9 +1257,13 @@
 		++curr;
 		break;
 	case 0xae:
-		ret << "XOR (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "XOR (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0xb4:
 		ret << "OR I" << xy << 'H';
@@ -1170,9 +1274,13 @@
 		++curr;
 		break;
 	case 0xb6:
-		ret << "OR (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "OR (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0xbc:
 		ret << "CP I" << xy << 'H';
@@ -1183,9 +1291,13 @@
 		++curr;
 		break;
 	case 0xbe:
-		ret << "CP (I" << xy << " + " <<
-			static_cast<uint16_t>(*curr) << ')';
-		curr += 2;
+		ret << "CP (I" << xy << " + ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr) << ')';
+		++curr;
 		break;
 	case 0xcb:
 		ret << dump_IX_IY_bits(++curr, xy, base);
@@ -1211,7 +1323,12 @@
 		++curr;
 		break;
 	default:
-		ret << "db " << static_cast<uint16_t>(*curr);
+		ret << "db ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*curr);
 		break;
 	}
 
@@ -2003,7 +2120,7 @@
 	std::ostringstream ret;
 
 	if (base == base::hex)
-		ret << std::hex;
+		ret << std::uppercase << std::hex;
 
 	switch (*curr)
 	{
@@ -2021,10 +2138,13 @@
 		break;
 	case 0x43:
 		ret << "LD (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << "), BC";
+		curr += 2;
 		break;
 	case 0x44:
 		ret << "NEG";
@@ -2056,10 +2176,13 @@
 		break;
 	case 0x4b:
 		ret << "LD BC, (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << ')';
+		curr += 2;
 		break;
 	case 0x4c:
 		ret << "NEG";
@@ -2091,10 +2214,13 @@
 		break;
 	case 0x53:
 		ret << "LD (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << "), DE";
+		curr += 2;
 		break;
 	case 0x54:
 		ret << "NEG";
@@ -2126,10 +2252,13 @@
 		break;
 	case 0x5b:
 		ret << "LD DE, (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << ')';
+		curr += 2;
 		break;
 	case 0x5c:
 		ret << "NEG";
@@ -2161,10 +2290,13 @@
 		break;
 	case 0x63:
 		ret << "LD (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << "), HL";
+		curr += 2;
 		break;
 	case 0x64:
 		ret << "NEG";
@@ -2196,10 +2328,13 @@
 		break;
 	case 0x6b:
 		ret << "LD HL, (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << ')';
+		curr += 2;
 		break;
 	case 0x6c:
 		ret << "NEG";
@@ -2218,7 +2353,7 @@
 		++curr;
 		break;
 	case 0x70:
-		ret << "IN (C)";
+		ret << "IN F, (C)";
 		++curr;
 		break;
 	case 0x71:
@@ -2231,10 +2366,13 @@
 		break;
 	case 0x73:
 		ret << "LD (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << "), SP";
+		curr += 2;
 		break;
 	case 0x74:
 		ret << "NEG";
@@ -2262,10 +2400,13 @@
 		break;
 	case 0x7b:
 		ret << "LD SP, (";
-		++curr;
-		ret << *reinterpret_cast<const uint16_t*>(curr);
-		curr += 2;
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		ret << ')';
+		curr += 2;
 		break;
 	case 0x7c:
 		ret << "NEG";
@@ -2344,1152 +2485,1402 @@
 		++curr;
 		break;
 	default:
-		ret << "db 237, " << static_cast<uint16_t>(*curr);
+		ret << "db ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << 237 << ", ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*curr);
 		break;
 	}
 
 	return ret.str();
 }
 
-void fetch_opcode(const uint8_t*& curr, std::string& line, const base base)
+std::string fetch_opcode(const uint8_t*& curr, const base base)
 {
-	std::ostringstream ss;
+	std::ostringstream ret;
 
 	if (base == base::hex)
-		ss << std::hex;
+		ret << std::uppercase << std::hex;
 
 	switch (*curr)
 	{
 	case 0x00:
-		ss << "NOP";
+		ret << "NOP";
 		++curr;
 		break;
 	case 0x01:
-		ss << "LD BC, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD BC, ";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0x02:
-		ss << "LD (BC), A";
+		ret << "LD (BC), A";
 		++curr;
 		break;
 	case 0x03:
-		ss << "INC BC";
+		ret << "INC BC";
 		++curr;
 		break;
 	case 0x04:
-		ss << "INC B";
+		ret << "INC B";
 		++curr;
 		break;
 	case 0x05:
-		ss << "DEC B";
+		ret << "DEC B";
 		++curr;
 		break;
 	case 0x06:
-		ss << "LD B, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD B, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x07:
-		ss << "RLCA";
+		ret << "RLCA";
 		++curr;
 		break;
 	case 0x08:
-		ss << "EX AF,AF'";
+		ret << "EX AF,AF'";
 		++curr;
 		break;
 	case 0x09:
-		ss << "ADD HL,BC";
+		ret << "ADD HL,BC";
 		++curr;
 		break;
 	case 0x0a:
-		ss << "LD A,(BC)";
+		ret << "LD A,(BC)";
 		++curr;
 		break;
 	case 0x0b:
-		ss << "DEC BC";
+		ret << "DEC BC";
 		++curr;
 		break;
 	case 0x0c:
-		ss << "INC C";
+		ret << "INC C";
 		++curr;
 		break;
 	case 0x0d:
-		ss << "DEC C";
+		ret << "DEC C";
 		++curr;
 		break;
 	case 0x0e:
-		ss << "LD C, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD C, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x0f:
-		ss << "RRCA";
+		ret << "RRCA";
 		++curr;
 		break;
 	case 0x10:
-		ss << "DJNZ ";
+		ret << "DJNZ ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x11:
-		ss << "LD DE, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD DE, ";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0x12:
-		ss << "LD (DE), A";
+		ret << "LD (DE), A";
 		++curr;
 		break;
 	case 0x13:
-		ss << "INC DE";
+		ret << "INC DE";
 		++curr;
 		break;
 	case 0x14:
-		ss << "INC D";
+		ret << "INC D";
 		++curr;
 		break;
 	case 0x15:
-		ss << "DEC D";
+		ret << "DEC D";
 		++curr;
 		break;
 	case 0x16:
-		ss << "LD D, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD D, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x17:
-		ss << "RLA";
+		ret << "RLA";
 		++curr;
 		break;
 	case 0x18:
-		ss << "JR ";
+		ret << "JR ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x19:
-		ss << "ADD HL, DE";
+		ret << "ADD HL, DE";
 		++curr;
 		break;
 	case 0x1a:
-		ss << "LD A, (DE)";
+		ret << "LD A, (DE)";
 		++curr;
 		break;
 	case 0x1b:
-		ss << "DEC DE";
+		ret << "DEC DE";
 		++curr;
 		break;
 	case 0x1c:
-		ss << "INC E";
+		ret << "INC E";
 		++curr;
 		break;
 	case 0x1d:
-		ss << "DEC E";
+		ret << "DEC E";
 		++curr;
 		break;
 	case 0x1e:
-		ss << "LD E, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD E, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x1f:
-		ss << "RRA";
+		ret << "RRA";
 		++curr;
 		break;
 	case 0x20:
-		ss << "JR NZ, ";
+		ret << "JR NZ, ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x21:
-		ss << "LD HL, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD HL, ";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0x22:
-		ss << "LD (";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD (";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
-		ss << "), HL";
+		ret << "), HL";
 		break;
 	case 0x23:
-		ss << "INC HL";
+		ret << "INC HL";
 		++curr;
 		break;
 	case 0x24:
-		ss << "INC H";
+		ret << "INC H";
 		++curr;
 		break;
 	case 0x25:
-		ss << "DEC H";
+		ret << "DEC H";
 		++curr;
 		break;
 	case 0x26:
-		ss << "LD H, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD H, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x27:
-		ss << "DAA";
+		ret << "DAA";
 		++curr;
 		break;
 	case 0x28:
-		ss << "JR Z, ";
+		ret << "JR Z, ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x29:
-		ss << "ADD HL, HL";
+		ret << "ADD HL, HL";
 		++curr;
 		break;
 	case 0x2a:
-		ss << "LD HL, (";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD HL, (";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
+		ret << ')';
 		curr += 2;
-		ss << ')';
 		break;
 	case 0x2b:
-		ss << "DEC HL";
+		ret << "DEC HL";
 		++curr;
 		break;
 	case 0x2c:
-		ss << "INC L";
+		ret << "INC L";
 		++curr;
 		break;
 	case 0x2d:
-		ss << "DEC L";
+		ret << "DEC L";
 		++curr;
 		break;
 	case 0x2e:
-		ss << "LD L, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD L, ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x2f:
-		ss << "CPL";
+		ret << "CPL";
 		++curr;
 		break;
 	case 0x30:
-		ss << "JR NC, ";
+		ret << "JR NC, ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x31:
-		ss << "LD SP, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD SP, ";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0x32:
-		ss << "LD (";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD (";
+
+		if (base == base::hex)
+			ret << std::setw(4) << std::setfill('0');
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
+		ret << "), A";
 		curr += 2;
-		ss << "), A";
 		break;
 	case 0x33:
-		ss << "INC SP";
+		ret << "INC SP";
 		++curr;
 		break;
 	case 0x34:
-		ss << "INC (HL)";
+		ret << "INC (HL)";
 		++curr;
 		break;
 	case 0x35:
-		ss << "DEC (HL)";
+		ret << "DEC (HL)";
 		++curr;
 		break;
 	case 0x36:
-		ss << "LD (HL), ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD (HL), ";
+
+		if (base == base::hex)
+			ret << std::setw(2) << std::setfill('0');
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x37:
-		ss << "SCF";
+		ret << "SCF";
 		++curr;
 		break;
 	case 0x38:
-		ss << "JR C, ";
+		ret << "JR C, ";
 		++curr;
-		ss << static_cast<int16_t>(static_cast<char>(*curr));
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+			ret << static_cast<uint16_t>(*curr);
+		}
+		else
+			ret << static_cast<int16_t>(static_cast<char>(*curr));
+
 		++curr;
 		break;
 	case 0x39:
-		ss << "ADD HL, SP";
+		ret << "ADD HL, SP";
 		++curr;
 		break;
 	case 0x3a:
-		ss << "LD A, (";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "LD A, (";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
+		ret << ')';
 		curr += 2;
-		ss << ')';
 		break;
 	case 0x3b:
-		ss << "DEC SP";
+		ret << "DEC SP";
 		++curr;
 		break;
 	case 0x3c:
-		ss << "INC A";
+		ret << "INC A";
 		++curr;
 		break;
 	case 0x3d:
-		ss << "DEC A";
+		ret << "DEC A";
 		++curr;
 		break;
 	case 0x3e:
-		ss << "LD A, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "LD A, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0x3f:
-		ss << "CCF";
+		ret << "CCF";
 		++curr;
 		break;
 	case 0x40:
-		ss << "LD B, B";
+		ret << "LD B, B";
 		++curr;
 		break;
 	case 0x41:
-		ss << "LD B, C";
+		ret << "LD B, C";
 		++curr;
 		break;
 	case 0x42:
-		ss << "LD B, D";
+		ret << "LD B, D";
 		++curr;
 		break;
 	case 0x43:
-		ss << "LD B, E";
+		ret << "LD B, E";
 		++curr;
 		break;
 	case 0x44:
-		ss << "LD B, H";
+		ret << "LD B, H";
 		++curr;
 		break;
 	case 0x45:
-		ss << "LD B, L";
+		ret << "LD B, L";
 		++curr;
 		break;
 	case 0x46:
-		ss << "LD B, (HL)";
+		ret << "LD B, (HL)";
 		++curr;
 		break;
 	case 0x47:
-		ss << "LD B, A";
+		ret << "LD B, A";
 		++curr;
 		break;
 	case 0x48:
-		ss << "LD C, B";
+		ret << "LD C, B";
 		++curr;
 		break;
 	case 0x49:
-		ss << "LD C, C";
+		ret << "LD C, C";
 		++curr;
 		break;
 	case 0x4a:
-		ss << "LD C, D";
+		ret << "LD C, D";
 		++curr;
 		break;
 	case 0x4b:
-		ss << "LD C, E";
+		ret << "LD C, E";
 		++curr;
 		break;
 	case 0x4c:
-		ss << "LD C, H";
+		ret << "LD C, H";
 		++curr;
 		break;
 	case 0x4d:
-		ss << "LD C, L";
+		ret << "LD C, L";
 		++curr;
 		break;
 	case 0x4e:
-		ss << "LD C, (HL)";
+		ret << "LD C, (HL)";
 		++curr;
 		break;
 	case 0x4f:
-		ss << "LD C, A";
+		ret << "LD C, A";
 		++curr;
 		break;
 	case 0x50:
-		ss << "LD D, B";
+		ret << "LD D, B";
 		++curr;
 		break;
 	case 0x51:
-		ss << "LD D, C";
+		ret << "LD D, C";
 		++curr;
 		break;
 	case 0x52:
-		ss << "LD D, D";
+		ret << "LD D, D";
 		++curr;
 		break;
 	case 0x53:
-		ss << "LD D, E";
+		ret << "LD D, E";
 		++curr;
 		break;
 	case 0x54:
-		ss << "LD D, H";
+		ret << "LD D, H";
 		++curr;
 		break;
 	case 0x55:
-		ss << "LD D, L";
+		ret << "LD D, L";
 		++curr;
 		break;
 	case 0x56:
-		ss << "LD D, (HL)";
+		ret << "LD D, (HL)";
 		++curr;
 		break;
 	case 0x57:
-		ss << "LD D, A";
+		ret << "LD D, A";
 		++curr;
 		break;
 	case 0x58:
-		ss << "LD E, B";
+		ret << "LD E, B";
 		++curr;
 		break;
 	case 0x59:
-		ss << "LD E, C";
+		ret << "LD E, C";
 		++curr;
 		break;
 	case 0x5a:
-		ss << "LD E, D";
+		ret << "LD E, D";
 		++curr;
 		break;
 	case 0x5b:
-		ss << "LD E, E";
+		ret << "LD E, E";
 		++curr;
 		break;
 	case 0x5c:
-		ss << "LD E, H";
+		ret << "LD E, H";
 		++curr;
 		break;
 	case 0x5d:
-		ss << "LD E, L";
+		ret << "LD E, L";
 		++curr;
 		break;
 	case 0x5e:
-		ss << "LD E, (HL)";
+		ret << "LD E, (HL)";
 		++curr;
 		break;
 	case 0x5f:
-		ss << "LD E, A";
+		ret << "LD E, A";
 		++curr;
 		break;
 	case 0x60:
-		ss << "LD H, B";
+		ret << "LD H, B";
 		++curr;
 		break;
 	case 0x61:
-		ss << "LD H, C";
+		ret << "LD H, C";
 		++curr;
 		break;
 	case 0x62:
-		ss << "LD H, D";
+		ret << "LD H, D";
 		++curr;
 		break;
 	case 0x63:
-		ss << "LD H, E";
+		ret << "LD H, E";
 		++curr;
 		break;
 	case 0x64:
-		ss << "LD H, H";
+		ret << "LD H, H";
 		++curr;
 		break;
 	case 0x65:
-		ss << "LD H, L";
+		ret << "LD H, L";
 		++curr;
 		break;
 	case 0x66:
-		ss << "LD H, (HL)";
+		ret << "LD H, (HL)";
 		++curr;
 		break;
 	case 0x67:
-		ss << "LD H, A";
+		ret << "LD H, A";
 		++curr;
 		break;
 	case 0x68:
-		ss << "LD L, B";
+		ret << "LD L, B";
 		++curr;
 		break;
 	case 0x69:
-		ss << "LD L, C";
+		ret << "LD L, C";
 		++curr;
 		break;
 	case 0x6a:
-		ss << "LD L, D";
+		ret << "LD L, D";
 		++curr;
 		break;
 	case 0x6b:
-		ss << "LD L, E";
+		ret << "LD L, E";
 		++curr;
 		break;
 	case 0x6c:
-		ss << "LD L, H";
+		ret << "LD L, H";
 		++curr;
 		break;
 	case 0x6d:
-		ss << "LD L, L";
+		ret << "LD L, L";
 		++curr;
 		break;
 	case 0x6e:
-		ss << "LD L, (HL)";
+		ret << "LD L, (HL)";
 		++curr;
 		break;
 	case 0x6f:
-		ss << "LD L, A";
+		ret << "LD L, A";
 		++curr;
 		break;
 	case 0x70:
-		ss << "LD (HL), B";
+		ret << "LD (HL), B";
 		++curr;
 		break;
 	case 0x71:
-		ss << "LD (HL), C";
+		ret << "LD (HL), C";
 		++curr;
 		break;
 	case 0x72:
-		ss << "LD (HL), D";
+		ret << "LD (HL), D";
 		++curr;
 		break;
 	case 0x73:
-		ss << "LD (HL), E";
+		ret << "LD (HL), E";
 		++curr;
 		break;
 	case 0x74:
-		ss << "LD (HL), H";
+		ret << "LD (HL), H";
 		++curr;
 		break;
 	case 0x75:
-		ss << "LD (HL), L";
+		ret << "LD (HL), L";
 		++curr;
 		break;
 	case 0x76:
-		ss << "HALT";
+		ret << "HALT";
 		++curr;
 		break;
 	case 0x77:
-		ss << "LD (HL), A";
+		ret << "LD (HL), A";
 		++curr;
 		break;
 	case 0x78:
-		ss << "LD A, B";
+		ret << "LD A, B";
 		++curr;
 		break;
 	case 0x79:
-		ss << "LD A, C";
+		ret << "LD A, C";
 		++curr;
 		break;
 	case 0x7a:
-		ss << "LD A, D";
+		ret << "LD A, D";
 		++curr;
 		break;
 	case 0x7b:
-		ss << "LD A, E";
+		ret << "LD A, E";
 		++curr;
 		break;
 	case 0x7c:
-		ss << "LD A, H";
+		ret << "LD A, H";
 		++curr;
 		break;
 	case 0x7d:
-		ss << "LD A, L";
+		ret << "LD A, L";
 		++curr;
 		break;
 	case 0x7e:
-		ss << "LD A, (HL)";
+		ret << "LD A, (HL)";
 		++curr;
 		break;
 	case 0x7f:
-		ss << "LD A, A";
+		ret << "LD A, A";
 		++curr;
 		break;
 	case 0x80:
-		ss << "ADD A, B";
+		ret << "ADD A, B";
 		++curr;
 		break;
 	case 0x81:
-		ss << "ADD A, C";
+		ret << "ADD A, C";
 		++curr;
 		break;
 	case 0x82:
-		ss << "ADD A, D";
+		ret << "ADD A, D";
 		++curr;
 		break;
 	case 0x83:
-		ss << "ADD A, E";
+		ret << "ADD A, E";
 		++curr;
 		break;
 	case 0x84:
-		ss << "ADD A, H";
+		ret << "ADD A, H";
 		++curr;
 		break;
 	case 0x85:
-		ss << "ADD A, L";
+		ret << "ADD A, L";
 		++curr;
 		break;
 	case 0x86:
-		ss << "ADD A, (HL)";
+		ret << "ADD A, (HL)";
 		++curr;
 		break;
 	case 0x87:
-		ss << "ADD A, A";
+		ret << "ADD A, A";
 		++curr;
 		break;
 	case 0x88:
-		ss << "ADC A, B";
+		ret << "ADC A, B";
 		++curr;
 		break;
 	case 0x89:
-		ss << "ADC A, C";
+		ret << "ADC A, C";
 		++curr;
 		break;
 	case 0x8a:
-		ss << "ADC A, D";
+		ret << "ADC A, D";
 		++curr;
 		break;
 	case 0x8b:
-		ss << "ADC A, E";
+		ret << "ADC A, E";
 		++curr;
 		break;
 	case 0x8c:
-		ss << "ADC A, H";
+		ret << "ADC A, H";
 		++curr;
 		break;
 	case 0x8d:
-		ss << "ADC A, L";
+		ret << "ADC A, L";
 		++curr;
 		break;
 	case 0x8e:
-		ss << "ADC A, (HL)";
+		ret << "ADC A, (HL)";
 		++curr;
 		break;
 	case 0x8f:
-		ss << "ADC A, A";
+		ret << "ADC A, A";
 		++curr;
 		break;
 	case 0x90:
-		ss << "SUB B";
+		ret << "SUB B";
 		++curr;
 		break;
 	case 0x91:
-		ss << "SUB C";
+		ret << "SUB C";
 		++curr;
 		break;
 	case 0x92:
-		ss << "SUB D";
+		ret << "SUB D";
 		++curr;
 		break;
 	case 0x93:
-		ss << "SUB E";
+		ret << "SUB E";
 		++curr;
 		break;
 	case 0x94:
-		ss << "SUB H";
+		ret << "SUB H";
 		++curr;
 		break;
 	case 0x95:
-		ss << "SUB L";
+		ret << "SUB L";
 		++curr;
 		break;
 	case 0x96:
-		ss << "SUB (HL)";
+		ret << "SUB (HL)";
 		++curr;
 		break;
 	case 0x97:
-		ss << "SUB A";
+		ret << "SUB A";
 		++curr;
 		break;
 	case 0x98:
-		ss << "SBC A, B";
+		ret << "SBC A, B";
 		++curr;
 		break;
 	case 0x99:
-		ss << "SBC A, C";
+		ret << "SBC A, C";
 		++curr;
 		break;
 	case 0x9a:
-		ss << "SBC A, D";
+		ret << "SBC A, D";
 		++curr;
 		break;
 	case 0x9b:
-		ss << "SBC A, E";
+		ret << "SBC A, E";
 		++curr;
 		break;
 	case 0x9c:
-		ss << "SBC A, H";
+		ret << "SBC A, H";
 		++curr;
 		break;
 	case 0x9d:
-		ss << "SBC A, L";
+		ret << "SBC A, L";
 		++curr;
 		break;
 	case 0x9e:
-		ss << "SBC A, (HL)";
+		ret << "SBC A, (HL)";
 		++curr;
 		break;
 	case 0x9f:
-		ss << "SBC A, A";
+		ret << "SBC A, A";
 		++curr;
 		break;
 	case 0xa0:
-		ss << "AND B";
+		ret << "AND B";
 		++curr;
 		break;
 	case 0xa1:
-		ss << "AND C";
+		ret << "AND C";
 		++curr;
 		break;
 	case 0xa2:
-		ss << "AND D";
+		ret << "AND D";
 		++curr;
 		break;
 	case 0xa3:
-		ss << "AND E";
+		ret << "AND E";
 		++curr;
 		break;
 	case 0xa4:
-		ss << "AND H";
+		ret << "AND H";
 		++curr;
 		break;
 	case 0xa5:
-		ss << "AND L";
+		ret << "AND L";
 		++curr;
 		break;
 	case 0xa6:
-		ss << "AND (HL)";
+		ret << "AND (HL)";
 		++curr;
 		break;
 	case 0xa7:
-		ss << "AND A";
+		ret << "AND A";
 		++curr;
 		break;
 	case 0xa8:
-		ss << "XOR B";
+		ret << "XOR B";
 		++curr;
 		break;
 	case 0xa9:
-		ss << "XOR C";
+		ret << "XOR C";
 		++curr;
 		break;
 	case 0xaa:
-		ss << "XOR D";
+		ret << "XOR D";
 		++curr;
 		break;
 	case 0xab:
-		ss << "XOR E";
+		ret << "XOR E";
 		++curr;
 		break;
 	case 0xac:
-		ss << "XOR H";
+		ret << "XOR H";
 		++curr;
 		break;
 	case 0xad:
-		ss << "XOR L";
+		ret << "XOR L";
 		++curr;
 		break;
 	case 0xae:
-		ss << "XOR (HL)";
+		ret << "XOR (HL)";
 		++curr;
 		break;
 	case 0xaf:
-		ss << "XOR A";
+		ret << "XOR A";
 		++curr;
 		break;
 	case 0xb0:
-		ss << "OR B";
+		ret << "OR B";
 		++curr;
 		break;
 	case 0xb1:
-		ss << "OR C";
+		ret << "OR C";
 		++curr;
 		break;
 	case 0xb2:
-		ss << "OR D";
+		ret << "OR D";
 		++curr;
 		break;
 	case 0xb3:
-		ss << "OR E";
+		ret << "OR E";
 		++curr;
 		break;
 	case 0xb4:
-		ss << "OR H";
+		ret << "OR H";
 		++curr;
 		break;
 	case 0xb5:
-		ss << "OR L";
+		ret << "OR L";
 		++curr;
 		break;
 	case 0xb6:
-		ss << "OR (HL)";
+		ret << "OR (HL)";
 		++curr;
 		break;
 	case 0xb7:
-		ss << "OR A";
+		ret << "OR A";
 		++curr;
 		break;
 	case 0xb8:
-		ss << "CP B";
+		ret << "CP B";
 		++curr;
 		break;
 	case 0xb9:
-		ss << "CP C";
+		ret << "CP C";
 		++curr;
 		break;
 	case 0xba:
-		ss << "CP D";
+		ret << "CP D";
 		++curr;
 		break;
 	case 0xbb:
-		ss << "CP E";
+		ret << "CP E";
 		++curr;
 		break;
 	case 0xbc:
-		ss << "CP H";
+		ret << "CP H";
 		++curr;
 		break;
 	case 0xbd:
-		ss << "CP L";
+		ret << "CP L";
 		++curr;
 		break;
 	case 0xbe:
-		ss << "CP (HL)";
+		ret << "CP (HL)";
 		++curr;
 		break;
 	case 0xbf:
-		ss << "CP A";
+		ret << "CP A";
 		++curr;
 		break;
 	case 0xc0:
-		ss << "RET NZ";
+		ret << "RET NZ";
 		++curr;
 		break;
 	case 0xc1:
-		ss << "POP BC";
+		ret << "POP BC";
 		++curr;
 		break;
 	case 0xc2:
-		ss << "JP NZ, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP NZ, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xc3:
-		ss << "JP ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xc4:
-		ss << "CALL NZ, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL NZ, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xc5:
-		ss << "PUSH BC";
+		ret << "PUSH BC";
 		++curr;
 		break;
 	case 0xc6:
-		ss << "ADD A, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "ADD A, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xc7:
-		ss << "RST 00H";
+		ret << "RST 00H";
 		++curr;
 		break;
 	case 0xc8:
-		ss << "RET Z";
+		ret << "RET Z";
 		++curr;
 		break;
 	case 0xc9:
-		ss << "RET";
+		ret << "RET";
 		++curr;
 		break;
 	case 0xca:
-		ss << "JP Z, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP Z, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xcb:
-		ss << dump_bits(++curr);
+		ret << dump_bits(++curr);
 		break;
 	case 0xcc:
-		ss << "CALL Z, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL Z, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xcd:
-		ss << "CALL ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xce:
-		ss << "ADC A, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "ADC A, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xcf:
-		ss << "RST 08H";
+		ret << "RST 08H";
 		++curr;
 		break;
 	case 0xd0:
-		ss << "RET NC";
+		ret << "RET NC";
 		++curr;
 		break;
 	case 0xd1:
-		ss << "POP DE";
+		ret << "POP DE";
 		++curr;
 		break;
 	case 0xd2:
-		ss << "JP NC, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP NC, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xd3:
-		ss << "OUT (";
+		ret << "OUT (";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
+		ret << "), A";
 		++curr;
-		ss << static_cast<uint16_t>(*curr);
-		++curr;
-		ss << "), A";
 		break;
 	case 0xd4:
-		ss << "CALL NC, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL NC, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xd5:
-		ss << "PUSH DE";
+		ret << "PUSH DE";
 		++curr;
 		break;
 	case 0xd6:
-		ss << "SUB ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "SUB ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xd7:
-		ss << "RST 10H";
+		ret << "RST 10H";
 		++curr;
 		break;
 	case 0xd8:
-		ss << "RET C";
+		ret << "RET C";
 		++curr;
 		break;
 	case 0xd9:
-		ss << "EXX";
+		ret << "EXX";
 		++curr;
 		break;
 	case 0xda:
-		ss << "JP C, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP C, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xdb:
-		ss << "IN A, (";
+		ret << "IN A, (";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
+		ret << ')';
 		++curr;
-		ss << static_cast<uint16_t>(*curr);
-		++curr;
-		ss << ')';
 		break;
 	case 0xdc:
-		ss << "CALL C, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL C, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xdd:
-		ss << dump_IX_IY(++curr, 'X', base);
+		ret << dump_IX_IY(++curr, 'X', base);
 		break;
 	case 0xde:
-		ss << "SBC A, ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "SBC A, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xdf:
-		ss << "RST 18H";
+		ret << "RST 18H";
 		++curr;
 		break;
 	case 0xe0:
-		ss << "RET PO";
+		ret << "RET PO";
 		++curr;
 		break;
 	case 0xe1:
-		ss << "POP HL";
+		ret << "POP HL";
 		++curr;
 		break;
 	case 0xe2:
-		ss << "JP PO, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP PO, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xe3:
-		ss << "EX (SP), HL";
+		ret << "EX (SP), HL";
 		++curr;
 		break;
 	case 0xe4:
-		ss << "CALL PO, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL PO, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xe5:
-		ss << "PUSH HL";
+		ret << "PUSH HL";
 		++curr;
 		break;
 	case 0xe6:
-		ss << "AND ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "AND ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xe7:
-		ss << "RST 20H";
+		ret << "RST 20H";
 		++curr;
 		break;
 	case 0xe8:
-		ss << "RET PE";
+		ret << "RET PE";
 		++curr;
 		break;
 	case 0xe9:
-		ss << "JP (HL)";
+		ret << "JP (HL)";
 		++curr;
 		break;
 	case 0xea:
-		ss << "JP PE, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP PE, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xeb:
-		ss << "EX DE, HL";
+		ret << "EX DE, HL";
 		++curr;
 		break;
 	case 0xec:
-		ss << "CALL PE, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL PE, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xed:
-		ss << dump_ext(++curr, base);
+		ret << dump_ext(++curr, base);
 		break;
 	case 0xee:
-		ss << "XOR ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "XOR ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xef:
-		ss << "RST 28H";
+		ret << "RST 28H";
 		++curr;
 		break;
 	case 0xf0:
-		ss << "RET P";
+		ret << "RET P";
 		++curr;
 		break;
 	case 0xf1:
-		ss << "POP AF";
+		ret << "POP AF";
 		++curr;
 		break;
 	case 0xf2:
-		ss << "JP P, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP P, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xf3:
-		ss << "DI";
+		ret << "DI";
 		++curr;
 		break;
 	case 0xf4:
-		ss << "CALL P, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL P, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xf5:
-		ss << "PUSH AF";
+		ret << "PUSH AF";
 		++curr;
 		break;
 	case 0xf6:
-		ss << "OR ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "OR ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xf7:
-		ss << "RST 30H";
+		ret << "RST 30H";
 		++curr;
 		break;
 	case 0xf8:
-		ss << "RET M";
+		ret << "RET M";
 		++curr;
 		break;
 	case 0xf9:
-		ss << "LD SP, HL";
+		ret << "LD SP, HL";
 		++curr;
 		break;
 	case 0xfa:
-		ss << "JP M, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "JP M, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xfb:
-		ss << "EI";
+		ret << "EI";
 		++curr;
 		break;
 	case 0xfc:
-		ss << "CALL M, ";
-		++curr;
-		ss << *reinterpret_cast<const uint16_t*>(curr);
+		ret << "CALL M, ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(4) << std::setfill('0');
+		}
+
+		ret << *reinterpret_cast<const uint16_t*>(++curr);
 		curr += 2;
 		break;
 	case 0xfd:
-		ss << dump_IX_IY(++curr, 'Y', base);
+		ret << dump_IX_IY(++curr, 'Y', base);
 		break;
 	case 0xfe:
-		ss << "CP ";
-		++curr;
-		ss << static_cast<uint16_t>(*curr);
+		ret << "CP ";
+
+		if (base == base::hex)
+		{
+			ret << std::setw(2) << std::setfill('0');
+		}
+
+		ret << static_cast<uint16_t>(*++curr);
 		++curr;
 		break;
 	case 0xff:
-		ss << "RST 38H";
+		ret << "RST 38H";
 		++curr;
 		break;
 	}
 
-	ss << '\n';
-	line = ss.str();
+	ret << '\n';
+	return ret.str();
 }
 
 void dump(const data& data, const base base)
@@ -3505,19 +3896,17 @@ void dump(const data& data, const base base)
 		const uint8_t* curr = first;
 		std::ostringstream ss;
 		std::size_t offset = 0;
+		const std::string line = fetch_opcode(first, base);
 
-		fetch_opcode(first, line, base);
 		offset = first - curr;
 
 		for (; curr < first; ++curr)
 		{
 			if (base == base::hex)
-			{
-				ss << std::hex << std::setfill('0');
-				ss.width(2);
-			}
+				ss << std::uppercase << std::hex <<
+					std::setfill('0') << std::setw(2);
 			else
-				ss.width(3);
+				ss << std::setw(3);
 
 			ss << static_cast<int>(*curr) << ' ';
 		}
@@ -3528,11 +3917,11 @@ void dump(const data& data, const base base)
 
 		if (base == base::hex)
 		{
-			std::cout << std::hex << std::setfill('0');
-			std::cout.width(4);
+			std::cout << std::uppercase << std::hex <<
+				std::setfill('0') << std::setw(4);
 		}
 		else
-			std::cout.width(5);
+			std::cout << std::setw(5);
 
 		std::cout << addr << "   ";
 		std::cout << bytes << line;

@@ -4,10 +4,10 @@
 #include "data.h"
 #include "../parsertl14/include/parsertl/generator.hpp"
 
-void build_parser(data& d)
+void build_parser(data& d, const std::size_t flags)
 {
 	parsertl::rules grules;
-	lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
+	lexertl::rules lrules(lexertl::dot_not_cr_lf | flags);
 	std::string warnings;
 
 	grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF Char CP CPD "
@@ -43,7 +43,7 @@ void build_parser(data& d)
 		data._label[name] = static_cast<uint16_t>(data._memory.size());
 	};
 	grules.push("opt_colon", "%empty | ':'");
-	d._actions[grules.push("opcode", "Name EQU expr2")] = [](data& data)
+	d._actions[grules.push("opcode", "Name EQU full_expr")] = [](data& data)
 	{
 		const auto& t = data.dollar(2);
 		const uint16_t val = data.parse_expr(t.first, t.second);
@@ -60,7 +60,7 @@ void build_parser(data& d)
 		data._memory.insert(data._memory.end(), val, 0);
 	};
 	grules.push("opcode", "DW dw_list");
-	d._actions[grules.push("db_list", "expr2")] = [](data& data)
+	d._actions[grules.push("db_list", "full_expr")] = [](data& data)
 	{
 		data.push_byte(0);
 		data.bexpr(0);
@@ -77,7 +77,7 @@ void build_parser(data& d)
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
 	};
-	d._actions[grules.push("db_list", "db_list ',' expr2")] = [](data& data)
+	d._actions[grules.push("db_list", "db_list ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0);
 		data.bexpr(2);
@@ -94,12 +94,12 @@ void build_parser(data& d)
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
 	};
-	d._actions[grules.push("dw_list", "expr2")] = [](data& data)
+	d._actions[grules.push("dw_list", "full_expr")] = [](data& data)
 	{
 		data.push_word(0);
 		data.wexpr(0);
 	};
-	d._actions[grules.push("dw_list", "dw_list ',' expr2")] = [](data& data)
+	d._actions[grules.push("dw_list", "dw_list ',' full_expr")] = [](data& data)
 	{
 		data.push_word(0);
 		data.wexpr(2);
@@ -137,28 +137,28 @@ void build_parser(data& d)
 		data.push_byte(0);
 		data.bexpr(3);
 	};
-	d._actions[grules.push("opcode", "LD IXh ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD IXh ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x26);
 		data.push_byte(0);
 		data.bexpr(3);
 	};
-	d._actions[grules.push("opcode", "LD IXl ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD IXl ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x2E);
 		data.push_byte(0);
 		data.bexpr(3);
 	};
-	d._actions[grules.push("opcode", "LD IYh ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD IYh ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x26);
 		data.push_byte(0);
 		data.bexpr(3);
 	};
-	d._actions[grules.push("opcode", "LD IYl ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD IYl ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x2E);
@@ -169,59 +169,59 @@ void build_parser(data& d)
 	{
 		data.push_byte(0b01000110 | data._r << 3);
 	};
-	d._actions[grules.push("opcode", "LD r ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "LD r ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0b01000110 | data._r << 3);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "LD r ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "LD r ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0b01000110 | data._r << 3);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "LD '(' HL ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0b01110000 | data._r);
 	};
-	d._actions[grules.push("opcode", "LD '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "LD '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0b01110000 | data._r);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "LD '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "LD '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0b01110000 | data._r);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "LD '(' HL ')' ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD '(' HL ')' ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0x36);
 		data.push_byte(0);
 		data.bexpr(5);
 	};
-	d._actions[grules.push("opcode", "LD '(' IX '+' expr ')' ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD '(' IX plus_minus expr ')' ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x36);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0);
 		data.bexpr(7);
 	};
-	d._actions[grules.push("opcode", "LD '(' IY '+' expr ')' ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "LD '(' IY plus_minus expr ')' ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x36);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0);
 		data.bexpr(7);
 	};
@@ -699,19 +699,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x86);
 	};
-	d._actions[grules.push("opcode", "ADD A ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "ADD A ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x86);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "ADD A ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "ADD A ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x86);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "ADC A ',' r")] = [](data& data)
 	{
@@ -747,19 +747,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x8E);
 	};
-	d._actions[grules.push("opcode", "ADC A ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "ADC A ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x8E);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "ADC A ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "ADC A ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x8E);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "SUB r")] = [](data& data)
 	{
@@ -795,19 +795,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x96);
 	};
-	d._actions[grules.push("opcode", "SUB '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SUB '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x96);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "SUB '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SUB '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x96);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "SBC A ',' r")] = [](data& data)
 	{
@@ -843,19 +843,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x9E);
 	};
-	d._actions[grules.push("opcode", "SBC A ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SBC A ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x9E);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "SBC A ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SBC A ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x9E);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "AND r")] = [](data& data)
 	{
@@ -891,19 +891,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0xA6);
 	};
-	d._actions[grules.push("opcode", "AND '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "AND '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xA6);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "AND '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "AND '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xA6);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "OR r")] = [](data& data)
 	{
@@ -939,19 +939,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0xB6);
 	};
-	d._actions[grules.push("opcode", "OR '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "OR '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xB6);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "OR '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "OR '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xB6);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "XOR r")] = [](data& data)
 	{
@@ -987,19 +987,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0xAE);
 	};
-	d._actions[grules.push("opcode", "XOR '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "XOR '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xAE);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "XOR '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "XOR '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xAE);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "CP r")] = [](data& data)
 	{
@@ -1025,7 +1025,7 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xBD);
 	};
-	d._actions[grules.push("opcode", "CP expr")] = [](data& data)
+	d._actions[grules.push("opcode", "CP full_expr")] = [](data& data)
 	{
 		data.push_byte(0xFE);
 		data.push_byte(0);
@@ -1035,19 +1035,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0xBE);
 	};
-	d._actions[grules.push("opcode", "CP '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "CP '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xBE);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "CP '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "CP '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xBE);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "INC r")] = [](data& data)
 	{
@@ -1077,19 +1077,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x34);
 	};
-	d._actions[grules.push("opcode", "INC '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "INC '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x34);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "INC '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "INC '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x34);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "DEC r")] = [](data& data)
 	{
@@ -1119,19 +1119,19 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x35);
 	};
-	d._actions[grules.push("opcode", "DEC '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "DEC '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x35);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
-	d._actions[grules.push("opcode", "DEC '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "DEC '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x35);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "DAA")] = [](data& data)
 	{
@@ -1258,36 +1258,36 @@ void build_parser(data& d)
 	{
 		data.push_byte(0x0F);
 	};
-	d._actions[grules.push("opcode", "RRC '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RRC '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00001000 | data._r);
 	};
-	d._actions[grules.push("opcode", "RRC '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RRC '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00001000 | data._r);
 	};
-	d._actions[grules.push("opcode", "RR '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RR '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00011000 | data._r);
 	};
-	d._actions[grules.push("opcode", "RR '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RR '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00011000 | data._r);
 	};
 	d._actions[grules.push("opcode", "RRA")] = [](data& data)
@@ -1304,36 +1304,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x06);
 	};
-	d._actions[grules.push("opcode", "RLC '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RLC '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x06);
 	};
-	d._actions[grules.push("opcode", "RLC '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RLC '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(data._r);
 	};
-	d._actions[grules.push("opcode", "RLC '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RLC '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x06);
 	};
-	d._actions[grules.push("opcode", "RLC '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RLC '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(data._r);
 	};
 	d._actions[grules.push("opcode", "RL r")] = [](data& data)
@@ -1346,36 +1346,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x16);
 	};
-	d._actions[grules.push("opcode", "RL '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RL '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x16);
 	};
-	d._actions[grules.push("opcode", "RL '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RL '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00010000 | data._r);
 	};
-	d._actions[grules.push("opcode", "RL '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RL '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x16);
 	};
-	d._actions[grules.push("opcode", "RL '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RL '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00010000 | data._r);
 	};
 	d._actions[grules.push("opcode", "RRC r")] = [](data& data)
@@ -1388,46 +1388,46 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x0E);
 	};
-	d._actions[grules.push("opcode", "RRC '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RRC '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x0E);
 	};
-	d._actions[grules.push("opcode", "RRC '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RRC '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x0E);
 	};
 	d._actions[grules.push("opcode", "RR r")] = [](data& data)
 	{
 		data.push_byte(0xCB);
-		data.push_byte(0b00001000 | data._r);
+		data.push_byte(0b00011000 | data._r);
 	};
 	d._actions[grules.push("opcode", "RR '(' HL ')'")] = [](data& data)
 	{
 		data.push_byte(0xCB);
 		data.push_byte(0x1E);
 	};
-	d._actions[grules.push("opcode", "RR '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RR '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x1E);
 	};
-	d._actions[grules.push("opcode", "RR '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RR '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x1E);
 	};
 	d._actions[grules.push("opcode", "SLA r")] = [](data& data)
@@ -1440,36 +1440,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x26);
 	};
-	d._actions[grules.push("opcode", "SLA '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SLA '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x26);
 	};
-	d._actions[grules.push("opcode", "SLA '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SLA '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00100000 | data._r);
 	};
-	d._actions[grules.push("opcode", "SLA '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SLA '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x26);
 	};
-	d._actions[grules.push("opcode", "SLA '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SLA '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00100000 | data._r);
 	};
 	d._actions[grules.push("opcode", "SLL r")] = [](data& data)
@@ -1482,36 +1482,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x36);
 	};
-	d._actions[grules.push("opcode", "SLL '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SLL '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x36);
 	};
-	d._actions[grules.push("opcode", "SLL '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SLL '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00110000 | data._r);
 	};
-	d._actions[grules.push("opcode", "SLL '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SLL '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x36);
 	};
-	d._actions[grules.push("opcode", "SLL '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SLL '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00110000 | data._r);
 	};
 	d._actions[grules.push("opcode", "SRA r")] = [](data& data)
@@ -1524,36 +1524,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x2E);
 	};
-	d._actions[grules.push("opcode", "SRA '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SRA '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x2E);
 	};
-	d._actions[grules.push("opcode", "SRA '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SRA '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00101000 | data._r);
 	};
-	d._actions[grules.push("opcode", "SRA '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SRA '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x2E);
 	};
-	d._actions[grules.push("opcode", "SRA '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SRA '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00101000 | data._r);
 	};
 	d._actions[grules.push("opcode", "SRL r")] = [](data& data)
@@ -1566,36 +1566,36 @@ void build_parser(data& d)
 		data.push_byte(0xCB);
 		data.push_byte(0x3E);
 	};
-	d._actions[grules.push("opcode", "SRL '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SRL '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x3E);
 	};
-	d._actions[grules.push("opcode", "SRL '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SRL '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00111000 | data._r);
 	};
-	d._actions[grules.push("opcode", "SRL '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SRL '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0x3E);
 	};
-	d._actions[grules.push("opcode", "SRL '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SRL '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(4);
+		data.bexpr(4, data._plus_minus);
 		data.push_byte(0b00111000 | data._r);
 	};
 	d._actions[grules.push("opcode", "RLD")] = [](data& data)
@@ -1644,7 +1644,7 @@ void build_parser(data& d)
 		data.push_byte(0b01000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "BIT integer ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "BIT integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1659,11 +1659,11 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b01000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "BIT integer ',' '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "BIT integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1678,14 +1678,14 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		const uint8_t by = 0b01000000 | bit << 3 | data._r;
 
 		data.push_byte(by);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "BIT integer ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "BIT integer ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1700,11 +1700,11 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b01000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "BIT integer ',' '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "BIT integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1719,7 +1719,7 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		const uint8_t by = 0b01000000 | bit << 3 | data._r;
 
@@ -1761,7 +1761,7 @@ void build_parser(data& d)
 		data.push_byte(0b11000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "SET integer ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SET integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		const int16_t bit = data._integer;
 
@@ -1776,11 +1776,11 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b11000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "SET integer ',' '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SET integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1795,7 +1795,7 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
 		const uint8_t by = 0b11000000 | bit << 3 | data._r;
@@ -1803,7 +1803,7 @@ void build_parser(data& d)
 		data.push_byte(by);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "SET integer ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "SET integer ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1818,11 +1818,11 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b11000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "SET integer ',' '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "SET integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1837,7 +1837,7 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
 		const uint8_t by = 0b11000000 | bit << 3 | data._r;
@@ -1880,7 +1880,7 @@ void build_parser(data& d)
 		data.push_byte(0b10000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "RES integer ',' '(' IX '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RES integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1895,11 +1895,11 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b10000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "RES integer ',' '(' IX '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RES integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1914,14 +1914,14 @@ void build_parser(data& d)
 		data.push_byte(0xDD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		const uint8_t by = 0b10000000 | bit << 3 | data._r;
 
 		data.push_byte(by);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "RES integer ',' '(' IY '+' expr ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "RES integer ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1936,11 +1936,11 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 		data.push_byte(0b10000110 | bit << 3);
 	};
 	// Bit is 0-7
-	d._actions[grules.push("opcode", "RES integer ',' '(' IY '+' expr ')' ',' r")] = [](data& data)
+	d._actions[grules.push("opcode", "RES integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
 	{
 		const uint16_t bit = data._integer;
 
@@ -1955,7 +1955,7 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xCB);
 		data.push_byte(0);
-		data.bexpr(6);
+		data.bexpr(6, data._plus_minus);
 
 		const uint8_t by = 0b10000000 | bit << 3 | data._r;
 
@@ -1967,19 +1967,19 @@ void build_parser(data& d)
 		data.push_word(0);
 		data.wexpr(1);
 	};
-	d._actions[grules.push("opcode", "JP cc ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "JP cc ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0b11000010 | data._cc << 3);
 		data.push_word(0);
 		data.wexpr(3);
 	};
-	d._actions[grules.push("opcode", "JR expr")] = [](data& data)
+	d._actions[grules.push("opcode", "JR full_expr")] = [](data& data)
 	{
 		data.push_byte(0x18);
 		data.push_byte(0);
 		data.rel_label(1);
 	};
-	d._actions[grules.push("opcode", "JR c ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "JR c ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0b00100000 | data._c << 3);
 		data.push_byte(0);
@@ -1999,19 +1999,19 @@ void build_parser(data& d)
 		data.push_byte(0xFD);
 		data.push_byte(0xE9);
 	};
-	d._actions[grules.push("opcode", "DJNZ expr")] = [](data& data)
+	d._actions[grules.push("opcode", "DJNZ full_expr")] = [](data& data)
 	{
 		data.push_byte(0x10);
 		data.push_byte(0);
 		data.rel_label(1);
 	};
-	d._actions[grules.push("opcode", "CALL expr")] = [](data& data)
+	d._actions[grules.push("opcode", "CALL full_expr")] = [](data& data)
 	{
 		data.push_byte(0xCD);
 		data.push_word(0);
 		data.wexpr(1);
 	};
-	d._actions[grules.push("opcode", "CALL cc ',' expr")] = [](data& data)
+	d._actions[grules.push("opcode", "CALL cc ',' full_expr")] = [](data& data)
 	{
 		data.push_byte(0b11000100 | data._cc << 3);
 		data.push_word(0);
@@ -2036,12 +2036,11 @@ void build_parser(data& d)
 		data.push_byte(0x45);
 	};
 	// Integer is 0-7
-	d._actions[grules.push("opcode", "RST Integer")] = [](data& data)
+	d._actions[grules.push("opcode", "RST integer")] = [](data& data)
 	{
-		int t = atoi(data.dollar(1).first);
 		uint8_t by = 0;
 
-		switch (t)
+		switch (data._integer)
 		{
 		case 0x00:
 			by = 0b000;
@@ -2088,7 +2087,7 @@ void build_parser(data& d)
 		data.push_byte(0);
 		data.bexpr(4);
 	};
-	d._actions[grules.push("opcode", "IN F '(' C ')'")] = [](data& data)
+	d._actions[grules.push("opcode", "IN F ',' '(' C ')'")] = [](data& data)
 	{
 		data.push_byte(0xED);
 		data.push_byte(0x70);
@@ -2166,6 +2165,15 @@ void build_parser(data& d)
 	{
 		data.push_byte(0xED);
 		data.push_byte(0xBB);
+	};
+
+	d._actions[grules.push("plus_minus", "'+'")] =  [](data& data)
+	{
+		data._plus_minus = *data.dollar(0).first;
+	};
+	d._actions[grules.push("plus_minus", "'-'")] = [](data& data)
+	{
+		data._plus_minus = *data.dollar(0).first;
 	};
 
 	d._actions[grules.push("r", "A")] = [](data& data)
@@ -2258,7 +2266,7 @@ void build_parser(data& d)
 	};
 	d._actions[grules.push("pp", "BC")] = [](data& data)
 	{
-		data._pp = 0b11;
+		data._pp = 0b00;
 	};
 	d._actions[grules.push("pp", "DE")] = [](data& data)
 	{
@@ -2345,14 +2353,14 @@ void build_parser(data& d)
 		"| expr '/' expr "
 		"| '-' expr %prec UMINUS "
 		"| item");
-	grules.push("expr2", "expr2 '|' expr2 "
-		"| expr2 '&' expr2 "
-		"| expr2 '+' expr2 "
-		"| expr2 '-' expr2 "
-		"| expr2 '*' expr2 "
-		"| expr2 '/' expr2 "
-		"| '(' expr2 ')' "
-		"| '-' expr2 %prec UMINUS "
+	grules.push("full_expr", "full_expr '|' full_expr "
+		"| full_expr '&' full_expr "
+		"| full_expr '+' full_expr "
+		"| full_expr '-' full_expr "
+		"| full_expr '*' full_expr "
+		"| full_expr '/' full_expr "
+		"| '(' full_expr ')' "
+		"| '-' full_expr %prec UMINUS "
 		"| item");
 	grules.push("item", "Name "
 		"| Binary "
@@ -2596,11 +2604,11 @@ void build_parser(data& d)
 	lrules.push("Z", grules.token_id("Z"));
 	lrules.push("'", grules.token_id(R"('\'')"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
-	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
+	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+[hH]", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
 	lrules.push(R"('[^'\r\n]{2,}'|\"[^"\r\n]+\")", grules.token_id("String"));
-	lrules.push("[_A-Z][0-9_A-Z]*", grules.token_id("Name"));
+	lrules.push("[A-Z_a-z][0-9A-Z_a-z]*", grules.token_id("Name"));
 	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
 	lrules.push("\r?\n", grules.token_id("NL"));
 	lexertl::generator::build(lrules, d._lsm);
@@ -2830,8 +2838,8 @@ void build_expr_parser(data& d)
 	lexertl::generator::build(lrules, d._expr_lsm);
 }
 
-void build_parsers(data& data)
+void build_parsers(data& data, const std::size_t flags)
 {
-	build_parser(data);
+	build_parser(data, flags);
 	build_expr_parser(data);
 }
