@@ -28,13 +28,24 @@ void build_opcodes_parser(lexertl::state_machine& sm)
 	lexertl::generator::build(rules, sm);
 }
 
-void test_opcodes(data& data)
+void build_opcodes_parser2(lexertl::state_machine& sm)
 {
-	lexertl::memory_file mf("opcodes.txt");
-	lexertl::state_machine sm;
+	lexertl::rules rules;
 
-	build_opcodes_parser(sm);
+	rules.push_state("NL");
+	rules.push("[/][/].*\r\n", rules.skip());
+	rules.push("INITIAL", R"(\".*?\")", eString, "NL");
+	rules.push(" ", rules.skip());
+	rules.push("[den]", eNum);
+	rules.push("[0-9A-F]{2}", eNum);
+	rules.push("[0-9A-F]{4}", eNum);
+	rules.push("NL", "\r\n", eNL, "INITIAL");
+	lexertl::generator::build(rules, sm);
+}
 
+void test_opcodes(const char* pathname, data& data, const lexertl::state_machine& sm)
+{
+	lexertl::memory_file mf(pathname);
 	lexertl::citerator iter(mf.data(), mf.data() + mf.size(), sm);
 	lexertl::citerator end;
 	std::string mnemonics;
@@ -113,9 +124,13 @@ int main()
 	try
 	{
 		data data;
+		lexertl::state_machine sm;
 
 		build_parsers(data, 0);
-		test_opcodes(data);
+		build_opcodes_parser(sm);
+		test_opcodes("opcodes.txt", data, sm);
+		build_opcodes_parser2(sm);
+		test_opcodes("opcodes2.txt", data, sm);
 	}
 	catch (const std::exception& e)
 	{

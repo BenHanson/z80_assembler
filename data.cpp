@@ -62,6 +62,8 @@ void data::parse(const char* first, const char* second)
 {
 	lexertl::citerator iter(first, second, _lsm);
 
+	// In case you are parsing one line at a time
+	_productions.clear();
 	_results.reset(iter->id, _gsm);
 
 	while (_results.entry.action != parsertl::action::error &&

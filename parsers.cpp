@@ -53,11 +53,7 @@ void build_parser(data& d, const std::size_t flags)
 	grules.push("opcode", "DB db_list");
 	d._actions[grules.push("opcode", "DS integer")] = [](data& data)
 	{
-		const auto& t = data.dollar(1);
-		std::size_t val = 0;
-		std::from_chars(t.first, t.second, val);
-
-		data._memory.insert(data._memory.end(), val, 0);
+		data._memory.insert(data._memory.end(), data._integer, 0);
 	};
 	grules.push("opcode", "DW dw_list");
 	d._actions[grules.push("db_list", "full_expr")] = [](data& data)

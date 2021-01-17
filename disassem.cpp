@@ -2554,15 +2554,15 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		++curr;
 		break;
 	case 0x08:
-		ret << "EX AF,AF'";
+		ret << "EX AF, AF'";
 		++curr;
 		break;
 	case 0x09:
-		ret << "ADD HL,BC";
+		ret << "ADD HL, BC";
 		++curr;
 		break;
 	case 0x0a:
-		ret << "LD A,(BC)";
+		ret << "LD A, (BC)";
 		++curr;
 		break;
 	case 0x0b:
