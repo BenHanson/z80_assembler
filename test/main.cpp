@@ -43,12 +43,56 @@ void build_opcodes_parser2(lexertl::state_machine& sm)
 	lexertl::generator::build(rules, sm);
 }
 
+void replace_vars(std::string& str, const base base)
+{
+	for (std::size_t pos = str.size(); pos != 0; --pos)
+	{
+		const std::size_t idx = pos - 1;
+
+		switch (str[idx])
+		{
+		case 'd':
+			//01h
+			str[idx] = '1';
+
+			if (base == base::hex)
+				str.insert(idx, 1, '0');
+
+			break;
+		case 'n':
+			//01h
+			//0101h
+			str[idx] = '1';
+
+			if (base == base::hex)
+				str.insert(idx, 1, '0');
+
+			break;
+		case 'e':
+			if (base == base::hex)
+			{
+				//FEh
+				str[idx] = 'E';
+				str.insert(idx, 1, 'F');
+			}
+			else
+			{
+				//-2
+				str[idx] = '2';
+				str.insert(idx, 1, '-');
+			}
+
+			break;
+		}
+	}
+}
+
 void test_opcodes(const char* pathname, data& data, const lexertl::state_machine& sm)
 {
 	lexertl::memory_file mf(pathname);
 	lexertl::citerator iter(mf.data(), mf.data() + mf.size(), sm);
 	lexertl::citerator end;
-	std::string mnemonics;
+	std::string text;
 	std::vector<uint8_t> opcodes;
 
 	for (; iter != end; ++iter)
@@ -57,9 +101,9 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 		{
 		case eString:
 			if (*(iter->second - 2) == '*')
-				mnemonics = iter->substr(1, 2) + "\r\n";
+				text = iter->substr(1, 2);
 			else
-				mnemonics = iter->substr(1, 1) + "\r\n";
+				text = iter->substr(1, 1);
 
 			break;
 		case eNum:
@@ -93,16 +137,29 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 		{
 			try
 			{
-				data._org = 16384;
-				mnemonics = "d EQU 01h\r\n"
+				std::string cmd = "d EQU 01h\r\n"
 					"n EQU 01h\r\n"
 					"nn EQU 0101h\r\n"
-					"e:\r\n"+ mnemonics;
-				data.parse(mnemonics.data(), mnemonics.data() + mnemonics.size());
-				dump(data, base::hex);
+					"e:\r\n" + text + "\r\n";
 
-				if (opcodes != data._memory)
-					throw std::runtime_error(mnemonics + " did not match.\n");
+				data._org = 16384;
+				data.parse(cmd.data(), cmd.data() + cmd.size());
+				cmd = mnemonic(data, base::hex);
+				replace_vars(text, base::hex);
+
+				if (opcodes != data._memory || cmd != text)
+					throw std::runtime_error("mismatch:\n" + text + '\n' + cmd + '\n');
+				else
+				{
+					std::cout << cmd;
+
+					if (cmd.size() < 8)
+						std::cout << "\t\t";
+					else if (cmd.size() < 16)
+						std::cout << '\t';
+
+					std::cout << "\tPassed\n";
+				}
 			}
 			catch (const std::exception& e)
 			{
@@ -114,7 +171,7 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 			break;
 		}
 		default:
-			throw std::runtime_error("Parse error in " + mnemonics);
+			throw std::runtime_error("Parse error in " + text);
 		}
 	}
 }

@@ -2542,11 +2542,11 @@ void build_parser(data& d, const std::size_t flags)
 	lrules.push("INI", grules.token_id("INI"));
 	lrules.push("INIR", grules.token_id("INIR"));
 	lrules.push("IX", grules.token_id("IX"));
-	lrules.push("IXh", grules.token_id("IXh"));
-	lrules.push("IXl", grules.token_id("IXl"));
+	lrules.push("IXH", grules.token_id("IXh"));
+	lrules.push("IXL", grules.token_id("IXl"));
 	lrules.push("IY", grules.token_id("IY"));
-	lrules.push("IYh", grules.token_id("IYh"));
-	lrules.push("IYl", grules.token_id("IYl"));
+	lrules.push("IYH", grules.token_id("IYh"));
+	lrules.push("IYL", grules.token_id("IYl"));
 	lrules.push("JP", grules.token_id("JP"));
 	lrules.push("JR", grules.token_id("JR"));
 	lrules.push("L", grules.token_id("L"));

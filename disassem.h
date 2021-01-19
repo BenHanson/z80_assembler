@@ -9,3 +9,4 @@ enum class base
 };
 
 void dump(const data& data, const base base);
+std::string mnemonic(const data& data, const base base);
