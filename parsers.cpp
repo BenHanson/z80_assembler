@@ -10,7 +10,7 @@ void build_parser(data& d, const std::size_t flags)
 	lexertl::rules lrules(lexertl::dot_not_cr_lf | flags);
 	std::string warnings;
 
-	grules.token("A ADD ADC AF AND B BC Binary BIT C CALL CCF Char CP CPD "
+	grules.token("A ADD ADC AF AF_PRIME AND B BC Binary BIT C CALL CCF Char CP CPD "
 		"CPDR CPI CPIR CPL D DAA DB DS DW DE DEC DI DJNZ E EI EQU EX EXX F H "
 		"HALT Hex HL Integer I IM IN INC IND INDR INI INIR IX IXh IXl "
 		"IY IYh IYl JP JR L LD LDD LDDR LDI LDIR M Name NC NEG NL NOP NZ OR "
@@ -22,14 +22,40 @@ void build_parser(data& d, const std::size_t flags)
 	grules.left("'*' '/'");
 	grules.precedence("UMINUS");
 
-	grules.push("opcodes", "%empty "
-		"| opcodes opcode NL");
-	grules.push("opcode", "");
-	d._actions[grules.push("opcode", "ORG integer")] = [](data& data)
+	grules.push("lines", "%empty "
+		"| lines line NL");
+	grules.push("line", "directive");
+	grules.push("line", "data");
+	d._actions[grules.push("line", "opcode")] = [](data& data)
+	{
+		if (data._mem_type.empty() ||
+			data._mem_type.back()._type != data::block::type::code)
+		{
+			data._mem_type.emplace_back(data::block(data::block::type::code,
+				data._memory.size()));
+		}
+		else
+			data._mem_type.back()._end = data._memory.size();
+	};
+	grules.push("line", "label opt_colon opt_opcode");
+	grules.push("opt_opcode", "%empty");
+	grules.push("opt_opcode", "data");
+	d._actions[grules.push("opt_opcode", "opcode")] = [](data& data)
+	{
+		if (data._mem_type.empty() ||
+			data._mem_type.back()._type != data::block::type::code)
+		{
+			data._mem_type.emplace_back(data::block(data::block::type::code,
+				data._memory.size()));
+		}
+		else
+			data._mem_type.back()._end = data._memory.size();
+	};
+	grules.push("line", "");
+	d._actions[grules.push("directive", "ORG integer")] = [](data& data)
 	{
 		data._org = data._integer;
 	};
-	grules.push("opcode", "label opt_colon opcode");
 	d._actions[grules.push("label", "Name")] = [](data& data)
 	{
 		std::string name = data.dollar(0).str();
@@ -43,19 +69,48 @@ void build_parser(data& d, const std::size_t flags)
 		data._label[name] = static_cast<uint16_t>(data._memory.size());
 	};
 	grules.push("opt_colon", "%empty | ':'");
-	d._actions[grules.push("opcode", "Name EQU full_expr")] = [](data& data)
+	d._actions[grules.push("directive", "Name EQU full_expr")] = [](data& data)
 	{
 		const auto& t = data.dollar(2);
 		const uint16_t val = data.parse_expr(t.first, t.second);
 
 		data._equ[data.dollar(0).str()] = val;
 	};
-	grules.push("opcode", "DB db_list");
-	d._actions[grules.push("opcode", "DS integer")] = [](data& data)
+	d._actions[grules.push("data", "DB db_list")] = [](data& data)
+	{
+		if (data._mem_type.empty() ||
+			data._mem_type.back()._type != data::block::type::db)
+		{
+			data._mem_type.emplace_back(data::block(data::block::type::db,
+				data._memory.size()));
+		}
+		else
+			data._mem_type.back()._end = data._memory.size();
+	};
+	d._actions[grules.push("data", "DS integer")] = [](data& data)
 	{
 		data._memory.insert(data._memory.end(), data._integer, 0);
+
+		if (data._mem_type.empty() ||
+			data._mem_type.back()._type != data::block::type::ds)
+		{
+			data._mem_type.emplace_back(data::block(data::block::type::ds,
+				data._memory.size()));
+		}
+		else
+			data._mem_type.back()._end = data._memory.size();
 	};
-	grules.push("opcode", "DW dw_list");
+	d._actions[grules.push("data", "DW dw_list")] = [](data& data)
+	{
+		if (data._mem_type.empty() ||
+			data._mem_type.back()._type != data::block::type::dw)
+		{
+			data._mem_type.emplace_back(data::block(data::block::type::dw,
+				data._memory.size()));
+		}
+		else
+			data._mem_type.back()._end = data._memory.size();
+	};
 	d._actions[grules.push("db_list", "full_expr")] = [](data& data)
 	{
 		data.push_byte(0);
@@ -599,7 +654,7 @@ void build_parser(data& d, const std::size_t flags)
 	{
 		data.push_byte(0xEB);
 	};
-	d._actions[grules.push("opcode", R"(EX AF ',' AF '\'')")] = [](data& data)
+	d._actions[grules.push("opcode", "EX AF ',' AF_PRIME")] = [](data& data)
 	{
 		data.push_byte(0x08);
 	};
@@ -2502,6 +2557,7 @@ void build_parser(data& d, const std::size_t flags)
 	lrules.push("ADC", grules.token_id("ADC"));
 	lrules.push("ADD", grules.token_id("ADD"));
 	lrules.push("AF", grules.token_id("AF"));
+	lrules.push("AF'", grules.token_id("AF_PRIME"));
 	lrules.push("AND", grules.token_id("AND"));
 	lrules.push("B", grules.token_id("B"));
 	lrules.push("BC", grules.token_id("BC"));
@@ -2598,7 +2654,6 @@ void build_parser(data& d, const std::size_t flags)
 	lrules.push("SUB", grules.token_id("SUB"));
 	lrules.push("XOR", grules.token_id("XOR"));
 	lrules.push("Z", grules.token_id("Z"));
-	lrules.push("'", grules.token_id(R"('\'')"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+[hH]", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));

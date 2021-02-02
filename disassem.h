@@ -5,8 +5,15 @@
 enum class base
 {
 	decimal,
-	hex
+	hexadecimal
 };
 
-void dump(const data& data, const base base);
-std::string mnemonic(const data& data, const base base);
+enum class relative
+{
+	as_is,
+	expand
+};
+
+void dump(const data& data, const base base, const relative relative);
+std::string mnemonic(const data& data, const base base, const uint8_t*& end,
+	const relative relative);

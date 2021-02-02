@@ -2,788 +2,813 @@
 #include <iomanip>
 #include <sstream>
 
-[[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr, const char xy, const base base)
+std::string bto_string(const uint8_t* curr, const base base, const bool is_signed = false)
 {
-	std::ostringstream ret;
 	std::ostringstream data;
 
-	if (base == base::hex)
+	if (base == base::hexadecimal)
 	{
 		data << std::uppercase << std::hex << std::setfill('0') << std::setw(2);
 	}
 
-	data << static_cast<uint16_t>(*curr);
-	++curr;
+	if (base == base::decimal && is_signed)
+		data << static_cast<int>(static_cast<int8_t>(*curr));
+	else
+		data << static_cast<uint16_t>(*curr);
 
-	switch (*curr)
+	++curr;
+	return data.str();
+}
+
+std::string wto_string(const uint8_t*& curr, const base base)
+{
+	uint16_t val = *curr;
+	std::ostringstream data;
+
+	if (base == base::hexadecimal)
+	{
+		data << std::uppercase << std::hex << std::setfill('0') << std::setw(4);
+	}
+
+	val += 256 * *++curr;
+	data << val;
+	return data.str();
+}
+
+[[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr, const char xy, const base base)
+{
+	std::ostringstream ret;
+	std::string data = bto_string(curr, base);
+
+	switch (*++curr)
 	{
 	case 0x00:
-		ret << "RLC (I" << xy << '+' << data.str() << "), B";
+		ret << "RLC (I" << xy << '+' << data << "), B";
 		break;
 	case 0x01:
-		ret << "RLC (I" << xy << '+' << data.str() << "), C";
+		ret << "RLC (I" << xy << '+' << data << "), C";
 		break;
 	case 0x02:
-		ret << "RLC (I" << xy << '+' << data.str() << "), D";
+		ret << "RLC (I" << xy << '+' << data << "), D";
 		break;
 	case 0x03:
-		ret << "RLC (I" << xy << '+' << data.str() << "), E";
+		ret << "RLC (I" << xy << '+' << data << "), E";
 		break;
 	case 0x04:
-		ret << "RLC (I" << xy << '+' << data.str() << "), H";
+		ret << "RLC (I" << xy << '+' << data << "), H";
 		break;
 	case 0x05:
-		ret << "RLC (I" << xy << '+' << data.str() << "), L";
+		ret << "RLC (I" << xy << '+' << data << "), L";
 		break;
 	case 0x06:
-		ret << "RLC (I" << xy << '+' << data.str() << ")";
+		ret << "RLC (I" << xy << '+' << data << ")";
 		break;
 	case 0x07:
-		ret << "RLC (I" << xy << '+' << data.str() << "), A";
+		ret << "RLC (I" << xy << '+' << data << "), A";
 		break;
 	case 0x08:
-		ret << "RRC (I" << xy << '+' << data.str() << "), B";
+		ret << "RRC (I" << xy << '+' << data << "), B";
 		break;
 	case 0x09:
-		ret << "RRC (I" << xy << '+' << data.str() << "), C";
+		ret << "RRC (I" << xy << '+' << data << "), C";
 		break;
 	case 0x0a:
-		ret << "RRC (I" << xy << '+' << data.str() << "), D";
+		ret << "RRC (I" << xy << '+' << data << "), D";
 		break;
 	case 0x0b:
-		ret << "RRC (I" << xy << '+' << data.str() << "), E";
+		ret << "RRC (I" << xy << '+' << data << "), E";
 		break;
 	case 0x0c:
-		ret << "RRC (I" << xy << '+' << data.str() << "), H";
+		ret << "RRC (I" << xy << '+' << data << "), H";
 		break;
 	case 0x0d:
-		ret << "RRC (I" << xy << '+' << data.str() << "), L";
+		ret << "RRC (I" << xy << '+' << data << "), L";
 		break;
 	case 0x0e:
-		ret << "RRC (I" << xy << '+' << data.str() << ")";
+		ret << "RRC (I" << xy << '+' << data << ")";
 		break;
 	case 0x0f:
-		ret << "RRC (I" << xy << '+' << data.str() << "), A";
+		ret << "RRC (I" << xy << '+' << data << "), A";
 		break;
 	case 0x10:
-		ret << "RL (I" << xy << '+' << data.str() << "), B";
+		ret << "RL (I" << xy << '+' << data << "), B";
 		break;
 	case 0x11:
-		ret << "RL (I" << xy << '+' << data.str() << "), C";
+		ret << "RL (I" << xy << '+' << data << "), C";
 		break;
 	case 0x12:
-		ret << "RL (I" << xy << '+' << data.str() << "), D";
+		ret << "RL (I" << xy << '+' << data << "), D";
 		break;
 	case 0x13:
-		ret << "RL (I" << xy << '+' << data.str() << "), E";
+		ret << "RL (I" << xy << '+' << data << "), E";
 		break;
 	case 0x14:
-		ret << "RL (I" << xy << '+' << data.str() << "), H";
+		ret << "RL (I" << xy << '+' << data << "), H";
 		break;
 	case 0x15:
-		ret << "RL (I" << xy << '+' << data.str() << "), L";
+		ret << "RL (I" << xy << '+' << data << "), L";
 		break;
 	case 0x16:
-		ret << "RL (I" << xy << '+' << data.str() << ")";
+		ret << "RL (I" << xy << '+' << data << ")";
 		break;
 	case 0x17:
-		ret << "RL (I" << xy << '+' << data.str() << "), A";
+		ret << "RL (I" << xy << '+' << data << "), A";
 		break;
 	case 0x18:
-		ret << "RR (I" << xy << '+' << data.str() << "), B";
+		ret << "RR (I" << xy << '+' << data << "), B";
 		break;
 	case 0x19:
-		ret << "RR (I" << xy << '+' << data.str() << "), C";
+		ret << "RR (I" << xy << '+' << data << "), C";
 		break;
 	case 0x1a:
-		ret << "RR (I" << xy << '+' << data.str() << "), D";
+		ret << "RR (I" << xy << '+' << data << "), D";
 		break;
 	case 0x1b:
-		ret << "RR (I" << xy << '+' << data.str() << "), E";
+		ret << "RR (I" << xy << '+' << data << "), E";
 		break;
 	case 0x1c:
-		ret << "RR (I" << xy << '+' << data.str() << "), H";
+		ret << "RR (I" << xy << '+' << data << "), H";
 		break;
 	case 0x1d:
-		ret << "RR (I" << xy << '+' << data.str() << "), L";
+		ret << "RR (I" << xy << '+' << data << "), L";
 		break;
 	case 0x1e:
-		ret << "RR (I" << xy << '+' << data.str() << ")";
+		ret << "RR (I" << xy << '+' << data << ")";
 		break;
 	case 0x1f:
-		ret << "RR (I" << xy << '+' << data.str() << "), A";
+		ret << "RR (I" << xy << '+' << data << "), A";
 		break;
 	case 0x20:
-		ret << "SLA (I" << xy << '+' << data.str() << "), B";
+		ret << "SLA (I" << xy << '+' << data << "), B";
 		break;
 	case 0x21:
-		ret << "SLA (I" << xy << '+' << data.str() << "), C";
+		ret << "SLA (I" << xy << '+' << data << "), C";
 		break;
 	case 0x22:
-		ret << "SLA (I" << xy << '+' << data.str() << "), D";
+		ret << "SLA (I" << xy << '+' << data << "), D";
 		break;
 	case 0x23:
-		ret << "SLA (I" << xy << '+' << data.str() << "), E";
+		ret << "SLA (I" << xy << '+' << data << "), E";
 		break;
 	case 0x24:
-		ret << "SLA (I" << xy << '+' << data.str() << "), H";
+		ret << "SLA (I" << xy << '+' << data << "), H";
 		break;
 	case 0x25:
-		ret << "SLA (I" << xy << '+' << data.str() << "), L";
+		ret << "SLA (I" << xy << '+' << data << "), L";
 		break;
 	case 0x26:
-		ret << "SLA (I" << xy << '+' << data.str() << ")";
+		ret << "SLA (I" << xy << '+' << data << ")";
 		break;
 	case 0x27:
-		ret << "SLA (I" << xy << '+' << data.str() << "), A";
+		ret << "SLA (I" << xy << '+' << data << "), A";
 		break;
 	case 0x28:
-		ret << "SRA (I" << xy << '+' << data.str() << "), B";
+		ret << "SRA (I" << xy << '+' << data << "), B";
 		break;
 	case 0x29:
-		ret << "SRA (I" << xy << '+' << data.str() << "), C";
+		ret << "SRA (I" << xy << '+' << data << "), C";
 		break;
 	case 0x2a:
-		ret << "SRA (I" << xy << '+' << data.str() << "), D";
+		ret << "SRA (I" << xy << '+' << data << "), D";
 		break;
 	case 0x2b:
-		ret << "SRA (I" << xy << '+' << data.str() << "), E";
+		ret << "SRA (I" << xy << '+' << data << "), E";
 		break;
 	case 0x2c:
-		ret << "SRA (I" << xy << '+' << data.str() << "), H";
+		ret << "SRA (I" << xy << '+' << data << "), H";
 		break;
 	case 0x2d:
-		ret << "SRA (I" << xy << '+' << data.str() << "), L";
+		ret << "SRA (I" << xy << '+' << data << "), L";
 		break;
 	case 0x2e:
-		ret << "SRA (I" << xy << '+' << data.str() << ")";
+		ret << "SRA (I" << xy << '+' << data << ")";
 		break;
 	case 0x2f:
-		ret << "SRA (I" << xy << '+' << data.str() << "), A";
+		ret << "SRA (I" << xy << '+' << data << "), A";
 		break;
 	case 0x30:
-		ret << "SLL (I" << xy << '+' << data.str() << "), B";
+		ret << "SLL (I" << xy << '+' << data << "), B";
 		break;
 	case 0x31:
-		ret << "SLL (I" << xy << '+' << data.str() << "), C";
+		ret << "SLL (I" << xy << '+' << data << "), C";
 		break;
 	case 0x32:
-		ret << "SLL (I" << xy << '+' << data.str() << "), D";
+		ret << "SLL (I" << xy << '+' << data << "), D";
 		break;
 	case 0x33:
-		ret << "SLL (I" << xy << '+' << data.str() << "), E";
+		ret << "SLL (I" << xy << '+' << data << "), E";
 		break;
 	case 0x34:
-		ret << "SLL (I" << xy << '+' << data.str() << "), H";
+		ret << "SLL (I" << xy << '+' << data << "), H";
 		break;
 	case 0x35:
-		ret << "SLL (I" << xy << '+' << data.str() << "), L";
+		ret << "SLL (I" << xy << '+' << data << "), L";
 		break;
 	case 0x36:
-		ret << "SLL (I" << xy << '+' << data.str() << ")";
+		ret << "SLL (I" << xy << '+' << data << ")";
 		break;
 	case 0x37:
-		ret << "SLL (I" << xy << '+' << data.str() << "), A";
+		ret << "SLL (I" << xy << '+' << data << "), A";
 		break;
 	case 0x38:
-		ret << "SRL (I" << xy << '+' << data.str() << "), B";
+		ret << "SRL (I" << xy << '+' << data << "), B";
 		break;
 	case 0x39:
-		ret << "SRL (I" << xy << '+' << data.str() << "), C";
+		ret << "SRL (I" << xy << '+' << data << "), C";
 		break;
 	case 0x3a:
-		ret << "SRL (I" << xy << '+' << data.str() << "), D";
+		ret << "SRL (I" << xy << '+' << data << "), D";
 		break;
 	case 0x3b:
-		ret << "SRL (I" << xy << '+' << data.str() << "), E";
+		ret << "SRL (I" << xy << '+' << data << "), E";
 		break;
 	case 0x3c:
-		ret << "SRL (I" << xy << '+' << data.str() << "), H";
+		ret << "SRL (I" << xy << '+' << data << "), H";
 		break;
 	case 0x3d:
-		ret << "SRL (I" << xy << '+' << data.str() << "), L";
+		ret << "SRL (I" << xy << '+' << data << "), L";
 		break;
 	case 0x3e:
-		ret << "SRL (I" << xy << '+' << data.str() << ")";
+		ret << "SRL (I" << xy << '+' << data << ")";
 		break;
 	case 0x3f:
-		ret << "SRL (I" << xy << '+' << data.str() << "), A";
+		ret << "SRL (I" << xy << '+' << data << "), A";
 		break;
 	case 0x40:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 0, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x41:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 0, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x42:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 0, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x43:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 0, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x44:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 0, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x45:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 0, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x47:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 0, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x46:
-		ret << "BIT 0, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 0, (I" << xy << '+' << data << ")";
 		break;
 	case 0x48:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 1, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x49:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 1, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x4a:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 1, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x4b:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 1, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x4c:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 1, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x4d:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 1, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x4e:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 1, (I" << xy << '+' << data << ")";
 		break;
 	case 0x4f:
-		ret << "BIT 1, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 1, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x50:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 2, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x51:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 2, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x52:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 2, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x53:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 2, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x54:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 2, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x55:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 2, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x56:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 2, (I" << xy << '+' << data << ")";
 		break;
 	case 0x57:
-		ret << "BIT 2, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 2, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x58:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 3, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x59:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 3, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x5a:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 3, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x5b:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 3, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x5c:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 3, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x5d:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 3, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x5e:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 3, (I" << xy << '+' << data << ")";
 		break;
 	case 0x5f:
-		ret << "BIT 3, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 3, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x60:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 4, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x61:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 4, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x62:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 4, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x63:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 4, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x64:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 4, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x65:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 4, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x66:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 4, (I" << xy << '+' << data << ")";
 		break;
 	case 0x67:
-		ret << "BIT 4, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 4, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x68:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 5, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x69:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 5, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x6a:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 5, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x6b:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 5, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x6c:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 5, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x6d:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 5, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x6e:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 5, (I" << xy << '+' << data << ")";
 		break;
 	case 0x6f:
-		ret << "BIT 5, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 5, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x70:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 6, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x71:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 6, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x72:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 6, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x73:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 6, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x74:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 6, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x75:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 6, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x76:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 6, (I" << xy << '+' << data << ")";
 		break;
 	case 0x77:
-		ret << "BIT 6, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 6, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x78:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), B";
+		ret << "BIT 7, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x79:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), C";
+		ret << "BIT 7, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x7a:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), D";
+		ret << "BIT 7, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x7b:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), E";
+		ret << "BIT 7, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x7c:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), H";
+		ret << "BIT 7, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x7d:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), L";
+		ret << "BIT 7, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x7e:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << ")";
+		ret << "BIT 7, (I" << xy << '+' << data << ")";
 		break;
 	case 0x7f:
-		ret << "BIT 7, (I" << xy << '+' << data.str() << "), A";
+		ret << "BIT 7, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x80:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 0, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x81:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 0, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x82:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 0, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x83:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 0, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x84:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 0, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x85:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 0, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x86:
-		ret << "RES 0, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 0, (I" << xy << '+' << data << ")";
 		break;
 	case 0x87:
-		ret << "RES 0, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 0, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x88:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 1, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x89:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 1, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x8a:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 1, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x8b:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 1, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x8c:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 1, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x8d:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 1, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x8e:
-		ret << "RES 1, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 1, (I" << xy << '+' << data << ")";
 		break;
 	case 0x8f:
-		ret << "RES 1, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 1, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x90:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 2, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x91:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 2, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x92:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 2, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x93:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 2, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x94:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 2, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x95:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 2, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x96:
-		ret << "RES 2, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 2, (I" << xy << '+' << data << ")";
 		break;
 	case 0x97:
-		ret << "RES 2, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 2, (I" << xy << '+' << data << "), A";
 		break;
 	case 0x98:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 3, (I" << xy << '+' << data << "), B";
 		break;
 	case 0x99:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 3, (I" << xy << '+' << data << "), C";
 		break;
 	case 0x9a:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 3, (I" << xy << '+' << data << "), D";
 		break;
 	case 0x9b:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 3, (I" << xy << '+' << data << "), E";
 		break;
 	case 0x9c:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 3, (I" << xy << '+' << data << "), H";
 		break;
 	case 0x9d:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 3, (I" << xy << '+' << data << "), L";
 		break;
 	case 0x9e:
-		ret << "RES 3, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 3, (I" << xy << '+' << data << ")";
 		break;
 	case 0x9f:
-		ret << "RES 3, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 3, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xa0:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 4, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xa1:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 4, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xa2:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 4, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xa3:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 4, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xa4:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 4, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xa5:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 4, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xa6:
-		ret << "RES 4, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 4, (I" << xy << '+' << data << ")";
 		break;
 	case 0xa7:
-		ret << "RES 4, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 4, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xa8:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 5, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xa9:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 5, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xaa:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 5, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xab:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 5, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xac:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 5, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xad:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 5, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xae:
-		ret << "RES 5, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 5, (I" << xy << '+' << data << ")";
 		break;
 	case 0xaf:
-		ret << "RES 5, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 5, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xb0:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 6, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xb1:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 6, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xb2:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 6, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xb3:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 6, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xb4:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 6, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xb5:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 6, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xb6:
-		ret << "RES 6, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 6, (I" << xy << '+' << data << ")";
 		break;
 	case 0xb7:
-		ret << "RES 6, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 6, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xb8:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), B";
+		ret << "RES 7, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xb9:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), C";
+		ret << "RES 7, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xba:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), D";
+		ret << "RES 7, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xbb:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), E";
+		ret << "RES 7, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xbc:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), H";
+		ret << "RES 7, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xbd:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), L";
+		ret << "RES 7, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xbe:
-		ret << "RES 7, (I" << xy << '+' << data.str() << ")";
+		ret << "RES 7, (I" << xy << '+' << data << ")";
 		break;
 	case 0xbf:
-		ret << "RES 7, (I" << xy << '+' << data.str() << "), A";
+		ret << "RES 7, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xc0:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 0, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xc1:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 0, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xc2:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 0, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xc3:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 0, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xc4:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 0, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xc5:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 0, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xc6:
-		ret << "SET 0, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 0, (I" << xy << '+' << data << ")";
 		break;
 	case 0xc7:
-		ret << "SET 0, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 0, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xc8:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 1, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xc9:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 1, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xca:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 1, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xcb:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 1, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xcc:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 1, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xcd:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 1, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xce:
-		ret << "SET 1, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 1, (I" << xy << '+' << data << ")";
 		break;
 	case 0xcf:
-		ret << "SET 1, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 1, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xd0:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 2, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xd1:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 2, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xd2:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 2, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xd3:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 2, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xd4:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 2, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xd5:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 2, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xd6:
-		ret << "SET 2, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 2, (I" << xy << '+' << data << ")";
 		break;
 	case 0xd7:
-		ret << "SET 2, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 2, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xd8:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 3, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xd9:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 3, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xda:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 3, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xdb:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 3, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xdc:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 3, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xdd:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 3, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xde:
-		ret << "SET 3, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 3, (I" << xy << '+' << data << ")";
 		break;
 	case 0xdf:
-		ret << "SET 3, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 3, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xe0:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 4, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xe1:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 4, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xe2:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 4, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xe3:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 4, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xe4:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 4, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xe5:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 4, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xe6:
-		ret << "SET 4, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 4, (I" << xy << '+' << data << ")";
 		break;
 	case 0xe7:
-		ret << "SET 4, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 4, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xe8:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 5, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xe9:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 5, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xea:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 5, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xeb:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 5, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xec:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 5, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xed:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 5, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xee:
-		ret << "SET 5, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 5, (I" << xy << '+' << data << ")";
 		break;
 	case 0xef:
-		ret << "SET 5, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 5, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xf0:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 6, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xf1:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 6, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xf2:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 6, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xf3:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 6, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xf4:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 6, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xf5:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 6, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xf6:
-		ret << "SET 6, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 6, (I" << xy << '+' << data << ")";
 		break;
 	case 0xf7:
-		ret << "SET 6, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 6, (I" << xy << '+' << data << "), A";
 		break;
 	case 0xf8:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), B";
+		ret << "SET 7, (I" << xy << '+' << data << "), B";
 		break;
 	case 0xf9:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), C";
+		ret << "SET 7, (I" << xy << '+' << data << "), C";
 		break;
 	case 0xfa:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), D";
+		ret << "SET 7, (I" << xy << '+' << data << "), D";
 		break;
 	case 0xfb:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), E";
+		ret << "SET 7, (I" << xy << '+' << data << "), E";
 		break;
 	case 0xfc:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), H";
+		ret << "SET 7, (I" << xy << '+' << data << "), H";
 		break;
 	case 0xfd:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), L";
+		ret << "SET 7, (I" << xy << '+' << data << "), L";
 		break;
 	case 0xfe:
-		ret << "SET 7, (I" << xy << '+' << data.str() << ")";
+		ret << "SET 7, (I" << xy << '+' << data << ")";
 		break;
 	case 0xff:
-		ret << "SET 7, (I" << xy << '+' << data.str() << "), A";
+		ret << "SET 7, (I" << xy << '+' << data << "), A";
 		break;
 	}
 
@@ -794,11 +819,6 @@
 {
 	std::ostringstream ret;
 
-	if (base == base::hex)
-	{
-		ret << std::uppercase << std::hex;
-	}
-
 	switch (*curr)
 	{
 	case 0x09:
@@ -808,27 +828,10 @@
 		ret << "ADD I" << xy << ", DE";
 		break;
 	case 0x21:
-		ret << "LD I" << xy << ", ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "LD I" << xy << ", " << wto_string(++curr, base);
 		break;
 	case 0x22:
-		ret << "LD (";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), I" << xy;
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), I" << xy;
 		break;
 	case 0x23:
 		ret << "INC I" << xy;
@@ -840,25 +843,13 @@
 		ret << "DEC I" << xy << 'H';
 		break;
 	case 0x26:
-		ret << "LD I" << xy << "H, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD I" << xy << "H, " << bto_string(++curr, base);
 		break;
 	case 0x29:
 		ret << "ADD I" << xy << ", I" << xy;
 		break;
 	case 0x2a:
-		ret << "LD I" << xy << ", (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD I" << xy << ", (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x2b:
 		ret << "DEC I" << xy;
@@ -870,44 +861,17 @@
 		ret << "DEC I" << xy << 'L';
 		break;
 	case 0x2e:
-		ret << "LD I" << xy << "L, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD I" << xy << "L, " << bto_string(++curr, base);
 		break;
 	case 0x34:
-		ret << "INC (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "INC (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x35:
-		ret << "DEC (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "DEC (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x36:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), " <<
+			bto_string(++curr, base);
 		break;
 	case 0x39:
 		ret << "ADD I" << xy << ", SP";
@@ -919,13 +883,7 @@
 		ret << "LD B, I" << xy << 'L';
 		break;
 	case 0x46:
-		ret << "LD B, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD B, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x4c:
 		ret << "LD C, I" << xy << 'H';
@@ -934,13 +892,7 @@
 		ret << "LD C, I" << xy << 'L';
 		break;
 	case 0x4e:
-		ret << "LD C, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD C, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x54:
 		ret << "LD D, I" << xy << 'H';
@@ -949,13 +901,7 @@
 		ret << "LD D, I" << xy << 'L';
 		break;
 	case 0x56:
-		ret << "LD D, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD D, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x5c:
 		ret << "LD E, I" << xy << 'H';
@@ -964,13 +910,7 @@
 		ret << "LD E, I" << xy << 'L';
 		break;
 	case 0x5e:
-		ret << "LD E, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD E, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x60:
 		ret << "LD I" << xy << "H, B";
@@ -991,13 +931,7 @@
 		ret << "LD I" << xy << "H, I" << xy << 'L';
 		break;
 	case 0x66:
-		ret << "LD H, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD H, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x67:
 		ret << "LD I" << xy << "H, A";
@@ -1021,79 +955,31 @@
 		ret << "LD I" << xy << "L, I" << xy << 'L';
 		break;
 	case 0x6e:
-		ret << "LD L, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD L, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x6f:
 		ret << "LD I" << xy << "L, A";
 		break;
 	case 0x70:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), B";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), B";
 		break;
 	case 0x71:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), C";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), C";
 		break;
 	case 0x72:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), D";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), D";
 		break;
 	case 0x73:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), E";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), E";
 		break;
 	case 0x74:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), H";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), H";
 		break;
 	case 0x75:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), L";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), L";
 		break;
 	case 0x77:
-		ret << "LD (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), A";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), A";
 		break;
 	case 0x7c:
 		ret << "LD A, I" << xy << 'H';
@@ -1102,13 +988,7 @@
 		ret << "LD A, I" << xy << 'L';
 		break;
 	case 0x7e:
-		ret << "LD A, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "LD A, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x84:
 		ret << "ADD A, I" << xy << 'H';
@@ -1117,12 +997,7 @@
 		ret << "ADD A, I" << xy << 'L';
 		break;
 	case 0x86:
-		ret << "ADD A, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "ADD A, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x8c:
 		ret << "ADC A, I" << xy << 'H';
@@ -1131,12 +1006,7 @@
 		ret << "ADC A, I" << xy << 'L';
 		break;
 	case 0x8e:
-		ret << "ADC A, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "ADC A, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x94:
 		ret << "SUB I" << xy << 'H';
@@ -1145,12 +1015,7 @@
 		ret << "SUB I" << xy << 'L';
 		break;
 	case 0x96:
-		ret << "SUB (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "SUB (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x9c:
 		ret << "SBC A, I" << xy << 'H';
@@ -1159,12 +1024,7 @@
 		ret << "SBC A, I" << xy << 'L';
 		break;
 	case 0x9e:
-		ret << "SBC A, (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "SBC A, (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0xa4:
 		ret << "AND I" << xy << 'H';
@@ -1173,12 +1033,7 @@
 		ret << "AND I" << xy << 'L';
 		break;
 	case 0xa6:
-		ret << "AND (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "AND (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0xac:
 		ret << "XOR I" << xy << 'H';
@@ -1187,12 +1042,7 @@
 		ret << "XOR I" << xy << 'L';
 		break;
 	case 0xae:
-		ret << "XOR (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "XOR (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0xb4:
 		ret << "OR I" << xy << 'H';
@@ -1201,12 +1051,7 @@
 		ret << "OR I" << xy << 'L';
 		break;
 	case 0xb6:
-		ret << "OR (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "OR (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0xbc:
 		ret << "CP I" << xy << 'H';
@@ -1215,12 +1060,7 @@
 		ret << "CP I" << xy << 'L';
 		break;
 	case 0xbe:
-		ret << "CP (I" << xy << '+';
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr) << ')';
+		ret << "CP (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0xcb:
 		ret << dump_IX_IY_bits(++curr, xy, base);
@@ -1241,12 +1081,7 @@
 		ret << "LD SP, I" << xy;
 		break;
 	default:
-		ret << "db ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*curr);
+		ret << "DB " << bto_string(curr, base);
 		break;
 	}
 
@@ -2036,7 +1871,7 @@
 {
 	std::ostringstream ret;
 
-	if (base == base::hex)
+	if (base == base::hexadecimal)
 		ret << std::uppercase << std::hex;
 
 	switch (*curr)
@@ -2051,14 +1886,7 @@
 		ret << "SBC HL, BC";
 		break;
 	case 0x43:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), BC";
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), BC";
 		break;
 	case 0x44:
 		ret << "NEG";
@@ -2082,14 +1910,7 @@
 		ret << "ADC HL, BC";
 		break;
 	case 0x4b:
-		ret << "LD BC, (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD BC, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x4c:
 		ret << "NEG";
@@ -2113,14 +1934,7 @@
 		ret << "SBC HL, DE";
 		break;
 	case 0x53:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), DE";
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), DE";
 		break;
 	case 0x54:
 		ret << "NEG";
@@ -2144,14 +1958,7 @@
 		ret << "ADC HL, DE";
 		break;
 	case 0x5b:
-		ret << "LD DE, (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD DE, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x5c:
 		ret << "NEG";
@@ -2175,14 +1982,7 @@
 		ret << "SBC HL, HL";
 		break;
 	case 0x63:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), HL";
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), HL";
 		break;
 	case 0x64:
 		ret << "NEG";
@@ -2206,14 +2006,7 @@
 		ret << "ADC HL, HL";
 		break;
 	case 0x6b:
-		ret << "LD HL, (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD HL, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x6c:
 		ret << "NEG";
@@ -2237,14 +2030,7 @@
 		ret << "SBC HL, SP";
 		break;
 	case 0x73:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), SP";
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), SP";
 		break;
 	case 0x74:
 		ret << "NEG";
@@ -2265,14 +2051,7 @@
 		ret << "ADC HL, SP";
 		break;
 	case 0x7b:
-		ret << "LD SP, (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD SP, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x7c:
 		ret << "NEG";
@@ -2332,14 +2111,14 @@
 		ret << "OTDR";
 		break;
 	default:
-		ret << "db ";
+		ret << "DB ";
 
-		if (base == base::hex)
+		if (base == base::hexadecimal)
 			ret << std::setw(2) << std::setfill('0');
 
 		ret << 237 << ", ";
 
-		if (base == base::hex)
+		if (base == base::hexadecimal)
 			ret << std::setw(2) << std::setfill('0');
 
 		ret << static_cast<uint16_t>(*curr);
@@ -2349,11 +2128,12 @@
 	return ret.str();
 }
 
-std::string fetch_opcode(const uint8_t*& curr, const base base)
+std::string fetch_opcode(const uint8_t*& curr, const data& data,
+	const base base, const relative relative)
 {
 	std::ostringstream ret;
 
-	if (base == base::hex)
+	if (base == base::hexadecimal)
 		ret << std::uppercase << std::hex;
 
 	switch (*curr)
@@ -2362,13 +2142,7 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "NOP";
 		break;
 	case 0x01:
-		ret << "LD BC, ";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "LD BC, " << wto_string(++curr, base);
 		break;
 	case 0x02:
 		ret << "LD (BC), A";
@@ -2383,12 +2157,7 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC B";
 		break;
 	case 0x06:
-		ret << "LD B, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD B, " << bto_string(++curr, base);
 		break;
 	case 0x07:
 		ret << "RLCA";
@@ -2412,37 +2181,32 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC C";
 		break;
 	case 0x0e:
-		ret << "LD C, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD C, " << bto_string(++curr, base);
 		break;
 	case 0x0f:
 		ret << "RRCA";
 		break;
 	case 0x10:
 		ret << "DJNZ ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x11:
-		ret << "LD DE, ";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "LD DE, " << wto_string(++curr, base);
 		break;
 	case 0x12:
 		ret << "LD (DE), A";
@@ -2457,27 +2221,28 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC D";
 		break;
 	case 0x16:
-		ret << "LD D, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD D, " << bto_string(++curr, base);
 		break;
 	case 0x17:
 		ret << "RLA";
 		break;
 	case 0x18:
 		ret << "JR ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x19:
@@ -2496,47 +2261,35 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC E";
 		break;
 	case 0x1e:
-		ret << "LD E, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD E, " << bto_string(++curr, base);
 		break;
 	case 0x1f:
 		ret << "RRA";
 		break;
 	case 0x20:
 		ret << "JR NZ, ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x21:
-		ret << "LD HL, ";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "LD HL, " << wto_string(++curr, base);
 		break;
 	case 0x22:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
-		ret << "), HL";
+		ret << "LD (" << wto_string(++curr, base) << "), HL";
 		break;
 	case 0x23:
 		ret << "INC HL";
@@ -2548,41 +2301,35 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC H";
 		break;
 	case 0x26:
-		ret << "LD H, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD H, " << bto_string(++curr, base);
 		break;
 	case 0x27:
 		ret << "DAA";
 		break;
 	case 0x28:
 		ret << "JR Z, ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x29:
 		ret << "ADD HL, HL";
 		break;
 	case 0x2a:
-		ret << "LD HL, (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD HL, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x2b:
 		ret << "DEC HL";
@@ -2594,47 +2341,35 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC L";
 		break;
 	case 0x2e:
-		ret << "LD L, ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD L, " << bto_string(++curr, base);
 		break;
 	case 0x2f:
 		ret << "CPL";
 		break;
 	case 0x30:
 		ret << "JR NC, ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x31:
-		ret << "LD SP, ";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "LD SP, " << wto_string(++curr, base);
 		break;
 	case 0x32:
-		ret << "LD (";
-
-		if (base == base::hex)
-			ret << std::setw(4) << std::setfill('0');
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << "), A";
-		++curr;
+		ret << "LD (" << wto_string(++curr, base) << "), A";
 		break;
 	case 0x33:
 		ret << "INC SP";
@@ -2646,43 +2381,35 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC (HL)";
 		break;
 	case 0x36:
-		ret << "LD (HL), ";
-
-		if (base == base::hex)
-			ret << std::setw(2) << std::setfill('0');
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD (HL), " << bto_string(++curr, base);
 		break;
 	case 0x37:
 		ret << "SCF";
 		break;
 	case 0x38:
 		ret << "JR C, ";
-		++curr;
 
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-			ret << static_cast<uint16_t>(*curr);
-		}
+		if (relative == relative::as_is)
+			ret << bto_string(++curr, base, true);
 		else
-			ret << static_cast<int16_t>(static_cast<char>(*curr));
+		{
+			uint16_t addr = data._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+
+			if (base == base::hexadecimal)
+			{
+				ret << std::setw(4) << std::setfill('0') << addr;
+			}
+			else
+				ret << addr;
+		}
 
 		break;
 	case 0x39:
 		ret << "ADD HL, SP";
 		break;
 	case 0x3a:
-		ret << "LD A, (";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		ret << ')';
-		++curr;
+		ret << "LD A, (" << wto_string(++curr, base) << ')';
 		break;
 	case 0x3b:
 		ret << "DEC SP";
@@ -2694,14 +2421,7 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "DEC A";
 		break;
 	case 0x3e:
-		ret << "LD A, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "LD A, " << bto_string(++curr, base);
 		break;
 	case 0x3f:
 		ret << "CCF";
@@ -3097,50 +2817,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "POP BC";
 		break;
 	case 0xc2:
-		ret << "JP NZ, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP NZ, " << wto_string(++curr, base);
 		break;
 	case 0xc3:
-		ret << "JP ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP " << wto_string(++curr, base);
 		break;
 	case 0xc4:
-		ret << "CALL NZ, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL NZ, " << wto_string(++curr, base);
 		break;
 	case 0xc5:
 		ret << "PUSH BC";
 		break;
 	case 0xc6:
-		ret << "ADD A, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "ADD A, " << bto_string(++curr, base);
 		break;
 	case 0xc7:
 		ret << "RST 00H";
@@ -3152,50 +2841,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "RET";
 		break;
 	case 0xca:
-		ret << "JP Z, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP Z, " << wto_string(++curr, base);
 		break;
 	case 0xcb:
 		ret << dump_bits(++curr);
 		break;
 	case 0xcc:
-		ret << "CALL Z, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL Z, " << wto_string(++curr, base);
 		break;
 	case 0xcd:
-		ret << "CALL ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL " << wto_string(++curr, base);
 		break;
 	case 0xce:
-		ret << "ADC A, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "ADC A, " << bto_string(++curr, base);
 		break;
 	case 0xcf:
 		ret << "RST 08H";
@@ -3207,50 +2865,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "POP DE";
 		break;
 	case 0xd2:
-		ret << "JP NC, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP NC, " << wto_string(++curr, base);
 		break;
 	case 0xd3:
-		ret << "OUT (";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << "), A";
+		ret << "OUT (" << bto_string(++curr, base) << "), A";
 		break;
 	case 0xd4:
-		ret << "CALL NC, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL NC, " << wto_string(++curr, base);
 		break;
 	case 0xd5:
 		ret << "PUSH DE";
 		break;
 	case 0xd6:
-		ret << "SUB ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "SUB " << bto_string(++curr, base);
 		break;
 	case 0xd7:
 		ret << "RST 10H";
@@ -3262,50 +2889,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "EXX";
 		break;
 	case 0xda:
-		ret << "JP C, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP C, " << wto_string(++curr, base);
 		break;
 	case 0xdb:
-		ret << "IN A, (";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
-		ret << ')';
+		ret << "IN A, (" << bto_string(++curr, base) << ')';
 		break;
 	case 0xdc:
-		ret << "CALL C, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL C, " << wto_string(++curr, base);
 		break;
 	case 0xdd:
 		ret << dump_IX_IY(++curr, 'X', base);
 		break;
 	case 0xde:
-		ret << "SBC A, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "SBC A, " << bto_string(++curr, base);
 		break;
 	case 0xdf:
 		ret << "RST 18H";
@@ -3317,42 +2913,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "POP HL";
 		break;
 	case 0xe2:
-		ret << "JP PO, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP PO, " << wto_string(++curr, base);
 		break;
 	case 0xe3:
 		ret << "EX (SP), HL";
 		break;
 	case 0xe4:
-		ret << "CALL PO, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL PO, " << wto_string(++curr, base);
 		break;
 	case 0xe5:
 		ret << "PUSH HL";
 		break;
 	case 0xe6:
-		ret << "AND ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "AND " << bto_string(++curr, base);
 		break;
 	case 0xe7:
 		ret << "RST 20H";
@@ -3364,42 +2937,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "JP (HL)";
 		break;
 	case 0xea:
-		ret << "JP PE, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP PE, " << wto_string(++curr, base);
 		break;
 	case 0xeb:
 		ret << "EX DE, HL";
 		break;
 	case 0xec:
-		ret << "CALL PE, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL PE, " << wto_string(++curr, base);
 		break;
 	case 0xed:
 		ret << dump_ext(++curr, base);
 		break;
 	case 0xee:
-		ret << "XOR ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "XOR " << bto_string(++curr, base);
 		break;
 	case 0xef:
 		ret << "RST 28H";
@@ -3411,42 +2961,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "POP AF";
 		break;
 	case 0xf2:
-		ret << "JP P, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP P, " << wto_string(++curr, base);
 		break;
 	case 0xf3:
 		ret << "DI";
 		break;
 	case 0xf4:
-		ret << "CALL P, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL P, " << wto_string(++curr, base);
 		break;
 	case 0xf5:
 		ret << "PUSH AF";
 		break;
 	case 0xf6:
-		ret << "OR ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "OR " << bto_string(++curr, base);
 		break;
 	case 0xf7:
 		ret << "RST 30H";
@@ -3458,42 +2985,19 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 		ret << "LD SP, HL";
 		break;
 	case 0xfa:
-		ret << "JP M, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "JP M, " << wto_string(++curr, base);
 		break;
 	case 0xfb:
 		ret << "EI";
 		break;
 	case 0xfc:
-		ret << "CALL M, ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(4) << std::setfill('0');
-		}
-
-		ret << *reinterpret_cast<const uint16_t*>(++curr);
-		++curr;
+		ret << "CALL M, " << wto_string(++curr, base);
 		break;
 	case 0xfd:
 		ret << dump_IX_IY(++curr, 'Y', base);
 		break;
 	case 0xfe:
-		ret << "CP ";
-
-		if (base == base::hex)
-		{
-			ret << std::setw(2) << std::setfill('0');
-		}
-
-		ret << static_cast<uint16_t>(*++curr);
+		ret << "CP " << bto_string(++curr, base);
 		break;
 	case 0xff:
 		ret << "RST 38H";
@@ -3504,26 +3008,78 @@ std::string fetch_opcode(const uint8_t*& curr, const base base)
 	return ret.str();
 }
 
-void dump(const data& data, const base base)
+void dump(const data& data, const base base, const relative relative)
 {
 	std::size_t addr = data._org;
 	const uint8_t* first = &data._memory.front();
 	const uint8_t* second = first + data._memory.size();
-	std::string bytes;
+	auto iter = data._mem_type.begin();
 	std::string line;
+	std::string bytes;
 
-	while (first != second)
+	while (first < second)
 	{
+		bool code = true;
 		const uint8_t* curr = first;
+		const std::size_t index = first - &data._memory.front();
 		std::ostringstream ss;
 		std::size_t offset = 0;
-		const std::string line = fetch_opcode(first, base);
 
-		offset = first - curr;
+		if (iter != data._mem_type.end() && iter->_end <= index)
+			++iter;
+
+		if (iter != data._mem_type.end())
+		{
+			switch (iter->_type)
+			{
+			case data::block::type::ds:
+			{
+				const std::size_t num = iter->_end - index;
+
+				line = "DS ";
+
+				if (base == base::hexadecimal)
+				{
+					std::ostringstream data;
+
+					data << std::uppercase << std::hex << std::setfill('0');
+
+					if (num < 256)
+						data << std::setw(2);
+					else
+						data << std::setw(4);
+
+					data << num;
+					line += data.str();
+				}
+				else
+					line += std::to_string(num);
+
+				first += num;
+				code = false;
+				break;
+			}
+			case data::block::type::db:
+				line = "DB " + bto_string(first++, base);
+				code = false;
+				break;
+			case data::block::type::dw:
+				line = "DW " + wto_string(first, base);
+				++first;
+				code = false;
+				break;
+			}
+		}
+
+		if (code)
+		{
+			line = fetch_opcode(first, data, base, relative);
+			offset = first - curr;
+		}
 
 		for (; curr < first; ++curr)
 		{
-			if (base == base::hex)
+			if (base == base::hexadecimal)
 				ss << std::uppercase << std::hex <<
 					std::setfill('0') << std::setw(2);
 			else
@@ -3534,9 +3090,9 @@ void dump(const data& data, const base base)
 
 		bytes = ss.str();
 		bytes.resize(static_cast<std::size_t>(5) *
-			static_cast<std::size_t>(base == base::hex ? 3 : 4), ' ');
+			static_cast<std::size_t>(base == base::hexadecimal ? 3 : 4), ' ');
 
-		if (base == base::hex)
+		if (base == base::hexadecimal)
 		{
 			std::cout << std::uppercase << std::hex <<
 				std::setfill('0') << std::setw(4);
@@ -3550,9 +3106,9 @@ void dump(const data& data, const base base)
 	}
 }
 
-std::string mnemonic(const data& data, const base base)
+std::string mnemonic(const data& data, const base base, const uint8_t*& end,
+	const relative relative)
 {
-	const uint8_t* first = &data._memory.front();
-
-	return fetch_opcode(first, base);
+	end = &data._memory.front();
+	return fetch_opcode(end, data, base, relative);
 }

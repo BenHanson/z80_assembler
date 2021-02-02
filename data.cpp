@@ -211,4 +211,5 @@ void data::clear()
 		;
 
 	_memory.clear();
+	_mem_type.clear();
 }

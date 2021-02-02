@@ -40,6 +40,20 @@ struct data
 	std::stack<int> _acc;
 	memory _memory;
 
+	struct block
+	{
+		enum class type { code, ds, db, dw };
+		type _type;
+		std::size_t _end = 0;
+
+		block(const type type, const std::size_t end) :
+			_type(type),
+			_end(end)
+		{
+		}
+	};
+	std::vector<block> _mem_type;
+
 	token dollar(const std::size_t index);
 	void push_byte();
 	void push_byte(const uint8_t by);

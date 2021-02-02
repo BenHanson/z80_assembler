@@ -55,7 +55,7 @@ void replace_vars(std::string& str, const base base)
 			//01h
 			str[idx] = '1';
 
-			if (base == base::hex)
+			if (base == base::hexadecimal)
 				str.insert(idx, 1, '0');
 
 			break;
@@ -64,12 +64,12 @@ void replace_vars(std::string& str, const base base)
 			//0101h
 			str[idx] = '1';
 
-			if (base == base::hex)
+			if (base == base::hexadecimal)
 				str.insert(idx, 1, '0');
 
 			break;
 		case 'e':
-			if (base == base::hex)
+			if (base == base::hexadecimal)
 			{
 				//FEh
 				str[idx] = 'E';
@@ -141,14 +141,17 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 					"n EQU 01h\r\n"
 					"nn EQU 0101h\r\n"
 					"e:\r\n" + text + "\r\n";
+				const uint8_t* end = nullptr;
 
 				data._org = 16384;
 				data.parse(cmd.data(), cmd.data() + cmd.size());
-				cmd = mnemonic(data, base::hex);
-				replace_vars(text, base::hex);
+				cmd = mnemonic(data, base::hexadecimal, end, relative::as_is);
+				replace_vars(text, base::hexadecimal);
 
 				if (opcodes != data._memory || cmd != text)
 					throw std::runtime_error("mismatch:\n" + text + '\n' + cmd + '\n');
+				else if (end != &data._memory.back() + 1)
+					throw std::runtime_error("Disassembler ran off the end of the buffer");
 				else
 				{
 					std::cout << cmd;
