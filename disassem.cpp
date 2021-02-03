@@ -3074,8 +3074,9 @@ void dump(const data& data, const base base, const relative relative)
 		if (code)
 		{
 			line = fetch_opcode(first, data, base, relative);
-			offset = first - curr;
 		}
+
+		offset = first - curr;
 
 		for (; curr < first; ++curr)
 		{
