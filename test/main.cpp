@@ -143,14 +143,14 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 					"e:\r\n" + text + "\r\n";
 				const uint8_t* end = nullptr;
 
-				data._org = 16384;
+				data._program._org = 16384;
 				data.parse(cmd.data(), cmd.data() + cmd.size());
-				cmd = mnemonic(data, base::hexadecimal, end, relative::as_is);
+				cmd = mnemonic(data._program, base::hexadecimal, end, relative::as_is);
 				replace_vars(text, base::hexadecimal);
 
-				if (opcodes != data._memory || cmd != text)
+				if (opcodes != data._program._memory || cmd != text)
 					throw std::runtime_error("mismatch:\n" + text + '\n' + cmd + '\n');
-				else if (end != &data._memory.back() + 1)
+				else if (end != &data._program._memory.back() + 1)
 					throw std::runtime_error("Disassembler ran off the end of the buffer");
 				else
 				{
