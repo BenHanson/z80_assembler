@@ -2128,6 +2128,12 @@ std::string wto_string(const uint8_t*& curr, const base base)
 	return ret.str();
 }
 
+uint16_t rel_addr(const program& program, const uint8_t* curr)
+{
+	return program._org + static_cast<uint16_t>
+		(curr + 2 + static_cast<int8_t>(*(curr + 1)) - &program._memory.front());
+}
+
 std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	const base base, const relative relative)
 {
@@ -2193,8 +2199,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
@@ -2233,8 +2238,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
@@ -2273,8 +2277,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
@@ -2313,8 +2316,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
@@ -2353,8 +2355,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
@@ -2393,8 +2394,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = program._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
+			uint16_t addr = rel_addr(program, curr++);
 
 			if (base == base::hexadecimal)
 			{
