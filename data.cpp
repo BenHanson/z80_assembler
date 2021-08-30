@@ -15,18 +15,18 @@ void data::push_byte()
 	if (_integer > 255)
 		throw std::out_of_range("Value " + std::to_string(_integer) + " is greater than 255");
 
-	_memory.push_back(_integer & 0xff);
+	_program._memory.push_back(_integer & 0xff);
 }
 
 void data::push_byte(const uint8_t by)
 {
-	_memory.push_back(by);
+	_program._memory.push_back(by);
 }
 
 void data::push_word(const uint16_t w)
 {
-	_memory.push_back(w & 0xff);
-	_memory.push_back(w >> 8);
+	_program._memory.push_back(w & 0xff);
+	_program._memory.push_back(w >> 8);
 }
 
 void data::rel_label(const std::size_t idx)
@@ -34,28 +34,28 @@ void data::rel_label(const std::size_t idx)
 	const std::string name = dollar(idx).str();
 	auto iter = _label.find(name);
 
-	_rel_addr[_memory.size() - 1] = name;
+	_rel_addr[_program._memory.size() - 1] = name;
 }
 
 void data::bexpr(const int32_t idx)
 {
 	const std::string name = dollar(idx).str();
 
-	_byte_expr[_memory.size() - 1] = std::make_pair(name, '+');
+	_byte_expr[_program._memory.size() - 1] = std::make_pair(name, '+');
 }
 
 void data::bexpr(const int32_t idx, const char op)
 {
 	const std::string name = dollar(idx).str();
 
-	_byte_expr[_memory.size() - 1] = std::make_pair(name, op);
+	_byte_expr[_program._memory.size() - 1] = std::make_pair(name, op);
 }
 
 void data::wexpr(const int32_t idx)
 {
 	const std::string name = dollar(idx).str();
 
-	_word_expr[_memory.size() - 2] = name;
+	_word_expr[_program._memory.size() - 2] = name;
 }
 
 void data::parse(const char* first, const char* second)
@@ -119,7 +119,7 @@ void data::parse(const char* first, const char* second)
 		{
 			const uint16_t val = parse_expr(pair.second.c_str(),
 				pair.second.c_str() + pair.second.size());
-			const int off = static_cast<int>(val - (_org + pair.first + 1));
+			const int off = static_cast<int>(val - (_program._org + pair.first + 1));
 
 			if (off < -128 || off > 127)
 			{
@@ -129,7 +129,7 @@ void data::parse(const char* first, const char* second)
 				throw std::runtime_error(ss.str());
 			}
 
-			_memory[pair.first] = static_cast<uint8_t>(off);
+			_program._memory[pair.first] = static_cast<uint8_t>(off);
 		}
 
 		for (const auto& pair : _byte_expr)
@@ -140,7 +140,7 @@ void data::parse(const char* first, const char* second)
 			if (pair.second.second == '-')
 				val *= -1;
 
-			_memory[pair.first] = val & 0xff;
+			_program._memory[pair.first] = val & 0xff;
 		}
 
 		for (const auto& pair : _word_expr)
@@ -148,8 +148,8 @@ void data::parse(const char* first, const char* second)
 			const uint16_t val = parse_expr(pair.second.c_str(),
 				pair.second.c_str() + pair.second.size());
 
-			_memory[pair.first] = val & 0xff;
-			_memory[pair.first + 1] = static_cast<uint8_t>(val >> 8);
+			_program._memory[pair.first] = val & 0xff;
+			_program._memory[pair.first + 1] = static_cast<uint8_t>(val >> 8);
 		}
 	}
 }
@@ -190,7 +190,7 @@ uint16_t data::parse_expr(const char* first, const char* second)
 
 void data::clear()
 {
-	_org = 23296;
+	_program.clear();
 	_label.clear();
 	_equ.clear();
 	_rel_addr.clear();
@@ -209,7 +209,4 @@ void data::clear()
 
 	for (; !_acc.empty(); _acc.pop())
 		;
-
-	_memory.clear();
-	_mem_type.clear();
 }

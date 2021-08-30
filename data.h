@@ -4,9 +4,38 @@
 #include "../parsertl14/include/parsertl/token.hpp"
 #include "../parsertl14/include/parsertl/match_results.hpp"
 
-struct data
+struct program
 {
 	using memory = std::vector<uint8_t>;
+	struct block
+	{
+		enum class type { code, ds, db, dw };
+		type _type;
+		std::size_t _end = 0;
+
+		block(const type type, const std::size_t end) :
+			_type(type),
+			_end(end)
+		{
+		}
+	};
+
+	uint16_t _org = 23296;
+	bool _org_set = false;
+	memory _memory;
+	std::vector<block> _mem_type;
+
+	void clear()
+	{
+		_org = 23296;
+		_org_set = false;
+		_memory.clear();
+		_mem_type.clear();
+	}
+};
+
+struct data
+{
 	using token = parsertl::token<lexertl::citerator>;
 
 	parsertl::state_machine _gsm;
@@ -18,7 +47,6 @@ struct data
 	parsertl::match_results _results;
 	token::token_vector _productions;
 
-	uint16_t _org = 23296;
 	std::map<std::string, uint16_t> _label;
 	std::map<std::string, int> _equ;
 	// Relative jumps
@@ -38,21 +66,7 @@ struct data
 	uint16_t _integer = ~0;
 	char _plus_minus = '+';
 	std::stack<int> _acc;
-	memory _memory;
-
-	struct block
-	{
-		enum class type { code, ds, db, dw };
-		type _type;
-		std::size_t _end = 0;
-
-		block(const type type, const std::size_t end) :
-			_type(type),
-			_end(end)
-		{
-		}
-	};
-	std::vector<block> _mem_type;
+	program _program;
 
 	token dollar(const std::size_t index);
 	void push_byte();

@@ -2128,7 +2128,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 	return ret.str();
 }
 
-std::string fetch_opcode(const uint8_t*& curr, const data& data,
+std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	const base base, const relative relative)
 {
 	std::ostringstream ret;
@@ -2193,8 +2193,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -2233,8 +2233,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -2273,8 +2273,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -2313,8 +2313,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -2353,8 +2353,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -2393,8 +2393,8 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 			ret << bto_string(++curr, base, true);
 		else
 		{
-			uint16_t addr = data._org + static_cast<uint16_t>
-				(curr + 1 + static_cast<int8_t>(*++curr) - &data._memory.front());
+			uint16_t addr = program._org + static_cast<uint16_t>
+				(curr + 1 + static_cast<int8_t>(*++curr) - &program._memory.front());
 
 			if (base == base::hexadecimal)
 			{
@@ -3008,12 +3008,12 @@ std::string fetch_opcode(const uint8_t*& curr, const data& data,
 	return ret.str();
 }
 
-void dump(const data& data, const base base, const relative relative)
+void dump(const program& program, const base base, const relative relative)
 {
-	std::size_t addr = data._org;
-	const uint8_t* first = &data._memory.front();
-	const uint8_t* second = first + data._memory.size();
-	auto iter = data._mem_type.begin();
+	std::size_t addr = program._org;
+	const uint8_t* first = &program._memory.front();
+	const uint8_t* second = first + program._memory.size();
+	auto iter = program._mem_type.begin();
 	std::string line;
 	std::string bytes;
 
@@ -3021,18 +3021,18 @@ void dump(const data& data, const base base, const relative relative)
 	{
 		bool code = true;
 		const uint8_t* curr = first;
-		const std::size_t index = first - &data._memory.front();
+		const std::size_t index = first - &program._memory.front();
 		std::ostringstream ss;
 		std::size_t offset = 0;
 
-		if (iter != data._mem_type.end() && iter->_end <= index)
+		if (iter != program._mem_type.end() && iter->_end <= index)
 			++iter;
 
-		if (iter != data._mem_type.end())
+		if (iter != program._mem_type.end())
 		{
 			switch (iter->_type)
 			{
-			case data::block::type::ds:
+			case program::block::type::ds:
 			{
 				const std::size_t num = iter->_end - index;
 
@@ -3059,11 +3059,11 @@ void dump(const data& data, const base base, const relative relative)
 				code = false;
 				break;
 			}
-			case data::block::type::db:
+			case program::block::type::db:
 				line = "DB " + bto_string(first++, base);
 				code = false;
 				break;
-			case data::block::type::dw:
+			case program::block::type::dw:
 				line = "DW " + wto_string(first, base);
 				++first;
 				code = false;
@@ -3073,7 +3073,7 @@ void dump(const data& data, const base base, const relative relative)
 
 		if (code)
 		{
-			line = fetch_opcode(first, data, base, relative);
+			line = fetch_opcode(first, program, base, relative);
 		}
 
 		offset = first - curr;
@@ -3107,9 +3107,9 @@ void dump(const data& data, const base base, const relative relative)
 	}
 }
 
-std::string mnemonic(const data& data, const base base, const uint8_t*& end,
+std::string mnemonic(const program& program, const base base, const uint8_t*& end,
 	const relative relative)
 {
-	end = &data._memory.front();
-	return fetch_opcode(end, data, base, relative);
+	end = &program._memory.front();
+	return fetch_opcode(end, program, base, relative);
 }

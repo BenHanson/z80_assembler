@@ -1,7 +1,7 @@
 #include <charconv>
-#include "parsers.h"
-
 #include "data.h"
+//#include "../parsertl14/include/parsertl/debug.hpp"
+#include "parsers.h"
 #include "../parsertl14/include/parsertl/generator.hpp"
 
 void build_parser(data& d, const std::size_t flags)
@@ -22,40 +22,37 @@ void build_parser(data& d, const std::size_t flags)
 	grules.left("'*' '/'");
 	grules.precedence("UMINUS");
 
-	grules.push("lines", "%empty "
-		"| lines line NL");
-	grules.push("line", "directive");
-	grules.push("line", "data");
+	grules.push("mnemonics", "line NL "
+		"| mnemonics line NL");
+	grules.push("line", "%empty | data");
+	d._actions[grules.push("line", "Name EQU full_expr")] = [](data& data)
+	{
+		const auto& t = data.dollar(2);
+		const uint16_t val = data.parse_expr(t.first, t.second);
+
+		data._equ[data.dollar(0).str()] = val;
+	};
+	d._actions[grules.push("line", "ORG integer")] = [](data& data)
+	{
+		if (data._program._org_set)
+			throw std::runtime_error("ORG can only be set once");
+
+		data._program._org = data._integer;
+		data._program._org_set = true;
+	};
 	d._actions[grules.push("line", "opcode")] = [](data& data)
 	{
-		if (data._mem_type.empty() ||
-			data._mem_type.back()._type != data::block::type::code)
+		if (data._program._mem_type.empty() ||
+			data._program._mem_type.back()._type != program::block::type::code)
 		{
-			data._mem_type.emplace_back(data::block(data::block::type::code,
-				data._memory.size()));
+			data._program._mem_type.emplace_back(program::
+				block(program::block::type::code,
+				data._program._memory.size()));
 		}
 		else
-			data._mem_type.back()._end = data._memory.size();
+			data._program._mem_type.back()._end = data._program._memory.size();
 	};
-	grules.push("line", "label opt_colon opt_opcode");
-	grules.push("opt_opcode", "%empty");
-	grules.push("opt_opcode", "data");
-	d._actions[grules.push("opt_opcode", "opcode")] = [](data& data)
-	{
-		if (data._mem_type.empty() ||
-			data._mem_type.back()._type != data::block::type::code)
-		{
-			data._mem_type.emplace_back(data::block(data::block::type::code,
-				data._memory.size()));
-		}
-		else
-			data._mem_type.back()._end = data._memory.size();
-	};
-	grules.push("line", "");
-	d._actions[grules.push("directive", "ORG integer")] = [](data& data)
-	{
-		data._org = data._integer;
-	};
+	grules.push("line", "label opt_colon opt_opcode_data");
 	d._actions[grules.push("label", "Name")] = [](data& data)
 	{
 		std::string name = data.dollar(0).str();
@@ -66,50 +63,57 @@ void build_parser(data& d, const std::size_t flags)
 			throw std::runtime_error(name + " already exists");
 		}
 
-		data._label[name] = static_cast<uint16_t>(data._memory.size());
+		data._label[name] = static_cast<uint16_t>(data._program._memory.size());
 	};
 	grules.push("opt_colon", "%empty | ':'");
-	d._actions[grules.push("directive", "Name EQU full_expr")] = [](data& data)
+	grules.push("opt_opcode_data", "%empty | data");
+	d._actions[grules.push("opt_opcode_data", "opcode")] = [](data& data)
 	{
-		const auto& t = data.dollar(2);
-		const uint16_t val = data.parse_expr(t.first, t.second);
-
-		data._equ[data.dollar(0).str()] = val;
+		if (data._program._mem_type.empty() ||
+			data._program._mem_type.back()._type !=
+			program::block::type::code)
+		{
+			data._program._mem_type.emplace_back(program::
+				block(program::block::type::code, data._program._memory.size()));
+		}
+		else
+			data._program._mem_type.back()._end = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DB db_list")] = [](data& data)
 	{
-		if (data._mem_type.empty() ||
-			data._mem_type.back()._type != data::block::type::db)
+		if (data._program._mem_type.empty() ||
+			data._program._mem_type.back()._type != program::block::type::db)
 		{
-			data._mem_type.emplace_back(data::block(data::block::type::db,
-				data._memory.size()));
+			data._program._mem_type.emplace_back(program::
+				block(program::block::type::db, data._program._memory.size()));
 		}
 		else
-			data._mem_type.back()._end = data._memory.size();
+			data._program._mem_type.back()._end = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DS integer")] = [](data& data)
 	{
-		data._memory.insert(data._memory.end(), data._integer, 0);
+		data._program._memory.insert(data._program._memory.end(), data._integer, 0);
 
-		if (data._mem_type.empty() ||
-			data._mem_type.back()._type != data::block::type::ds)
+		if (data._program._mem_type.empty() ||
+			data._program._mem_type.back()._type != program::block::type::ds)
 		{
-			data._mem_type.emplace_back(data::block(data::block::type::ds,
-				data._memory.size()));
+			data._program._mem_type.emplace_back(program::
+				block(program::block::type::ds, data._program._memory.size()));
 		}
 		else
-			data._mem_type.back()._end = data._memory.size();
+			data._program._mem_type.back()._end = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DW dw_list")] = [](data& data)
 	{
-		if (data._mem_type.empty() ||
-			data._mem_type.back()._type != data::block::type::dw)
+		if (data._program._mem_type.empty() ||
+			data._program._mem_type.back()._type != program::block::type::dw)
 		{
-			data._mem_type.emplace_back(data::block(data::block::type::dw,
-				data._memory.size()));
+			data._program._mem_type.emplace_back(program::
+				block(program::block::type::dw,
+				data._program._memory.size()));
 		}
 		else
-			data._mem_type.back()._end = data._memory.size();
+			data._program._mem_type.back()._end = data._program._memory.size();
 	};
 	d._actions[grules.push("db_list", "full_expr")] = [](data& data)
 	{
@@ -2537,6 +2541,7 @@ void build_parser(data& d, const std::size_t flags)
 		data._integer = atoi(t.first);
 	};
 
+	//parsertl::debug::dump(grules, std::cout);
 	parsertl::generator::build(grules, d._gsm, &warnings);
 
 	if (!warnings.empty())
@@ -2731,7 +2736,7 @@ void build_expr_parser(data& d)
 
 		if (lab != data._label.end())
 		{
-			data._acc.push(data._org + lab->second);
+			data._acc.push(data._program._org + lab->second);
 			return;
 		}
 

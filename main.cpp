@@ -3,18 +3,18 @@
 #include "../lexertl14/include/lexertl/memory_file.hpp"
 #include "parsers.h"
 
-void save(data& data, const char* src, const char* dest)
+void save(program& program, const char* src, const char* dest)
 {
 	lexertl::memory_file mf(src);
 
 	if (mf.data())
 	{
 		std::vector<uint8_t> sna(mf.data(), mf.data() + mf.size());
-		uint8_t* ptr = &sna.front() + 27 + (data._org - 16384);
+		uint8_t* ptr = &sna.front() + 27 + (program._org - 16384);
 		FILE* fp = nullptr;
 
 		mf.close();
-		memcpy(ptr, &data._memory.front(), data._memory.size());
+		memcpy(ptr, &program._memory.front(), program._memory.size());
 #ifdef WIN32
 		fopen_s(&fp, dest, "wb");
 #else
@@ -57,13 +57,13 @@ int main(int argc, const char* argv[])
 		data.parse(mf.data(), mf.data() + mf.size());
 		mf.close();
 
-		if (data._org + data._memory.size() - 1 > 65535)
+		if (data._program._org + data._program._memory.size() - 1 > 65535)
 			throw std::runtime_error("Code exceeds memory limit (65535)");
 
 		if (argc == 4)
-			save(data, argv[2], argv[3]);
+			save(data._program, argv[2], argv[3]);
 		else
-			dump(data, base::hexadecimal, relative::expand);
+			dump(data._program, base::decimal, relative::expand);
 
 		return 0;
 	}
