@@ -1,4 +1,3 @@
-#include <charconv>
 #include "data.h"
 //#include "../parsertl14/include/parsertl/debug.hpp"
 #include "parsers.h"
@@ -388,8 +387,6 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD IXh ',' r")] = [](data& data)
 	{
-		const auto& t = data.dollar(3);
-
 		if (data._r == 0b100)
 		{
 			const std::string str(data.dollar(0).first,
@@ -421,8 +418,6 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD IXl ',' r")] = [](data& data)
 	{
-		const auto& t = data.dollar(3);
-
 		if (data._r == 0b100)
 		{
 			const std::string str(data.dollar(0).first,
@@ -461,8 +456,6 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD IYh ',' r")] = [](data& data)
 	{
-		const auto& t = data.dollar(3);
-
 		if (data._r == 0b100)
 		{
 			const std::string str(data.dollar(0).first,
@@ -494,8 +487,6 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD IYl ',' r")] = [](data& data)
 	{
-		const auto& t = data.dollar(3);
-
 		if (data._r == 0b100)
 		{
 			const std::string str(data.dollar(0).first,
@@ -1677,7 +1668,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b01000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1696,7 +1687,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		data.push_byte(0xCB);
-		data.push_byte(0b01000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b01000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "BIT integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
@@ -1715,7 +1706,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b01000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b01000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "BIT integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
@@ -1735,7 +1726,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = 0b01000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1756,7 +1747,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b01000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b01000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "BIT integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
@@ -1776,7 +1767,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = 0b01000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1794,7 +1785,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b11000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1813,7 +1804,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		data.push_byte(0xCB);
-		data.push_byte(0b11000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b11000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "SET integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
@@ -1832,7 +1823,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b11000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b11000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "SET integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
@@ -1853,7 +1844,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b11000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1874,7 +1865,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b11000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b11000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "SET integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
@@ -1895,7 +1886,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b11000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1913,7 +1904,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b10000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1932,7 +1923,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		data.push_byte(0xCB);
-		data.push_byte(0b10000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b10000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "RES integer ',' '(' IX plus_minus expr ')'")] = [](data& data)
@@ -1951,7 +1942,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b10000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b10000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "RES integer ',' '(' IX plus_minus expr ')' ',' r")] = [](data& data)
@@ -1971,7 +1962,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = 0b10000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1992,7 +1983,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xCB);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
-		data.push_byte(0b10000110 | bit << 3);
+		data.push_byte(static_cast<uint8_t>(0b10000110 | bit << 3));
 	};
 	// Bit is 0-7
 	d._actions[grules.push("opcode", "RES integer ',' '(' IY plus_minus expr ')' ',' r")] = [](data& data)
@@ -2012,7 +2003,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = 0b10000000 | bit << 3 | data._r;
+		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -2447,7 +2438,6 @@ void build_parser(data& d, const std::size_t flags)
 	{
 		const auto& t = data.dollar(0);
 		const char* first = t.first + 1;
-		uint8_t c = 0;
 
 		if (*first == '\\')
 		{
@@ -2538,7 +2528,7 @@ void build_parser(data& d, const std::size_t flags)
 	{
 		const auto& t = data.dollar(0);
 
-		data._integer = atoi(t.first);
+		data._integer = static_cast<uint16_t>(atoi(t.first));
 	};
 
 	//parsertl::debug::dump(grules, std::cout);
@@ -2776,7 +2766,6 @@ void build_expr_parser(data& d)
 	{
 		const auto& t = data._results.dollar(data._expr_gsm, 0, data._productions);
 		const char* first = t.first + 1;
-		uint8_t c = 0;
 
 		if (*first == '\\')
 		{
@@ -2869,7 +2858,7 @@ void build_expr_parser(data& d)
 	{
 		const auto& t = data._results.dollar(data._expr_gsm, 0, data._productions);
 
-		data._integer = atoi(t.first);
+		data._integer = static_cast<uint16_t>(atoi(t.first));
 		data._acc.push(data._integer);
 	};
 	parsertl::generator::build(grules, d._expr_gsm, &warnings);

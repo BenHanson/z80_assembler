@@ -870,8 +870,9 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "DEC (I" << xy << '+' << bto_string(++curr, base) << ')';
 		break;
 	case 0x36:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), " <<
-			bto_string(++curr, base);
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), ";
+		// Separate line due to pre-increment/evaluation order/clang warning
+		ret << bto_string(++curr, base);
 		break;
 	case 0x39:
 		ret << "ADD I" << xy << ", SP";
@@ -3067,6 +3068,8 @@ void dump(const program& program, const base base, const relative relative)
 				line = "DW " + wto_string(first, base);
 				++first;
 				code = false;
+				break;
+			default:
 				break;
 			}
 		}

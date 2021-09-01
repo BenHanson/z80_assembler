@@ -102,7 +102,7 @@ void data::parse(const char* first, const char* second)
 		std::ostringstream ss;
 		std::size_t count = 0;
 
-		for (auto i = (&*bol) + 1, s = i, e = iter->first; i != e; ++i)
+		for (auto i = (&*bol) + 1, e = iter->first; i != e; ++i)
 			if (*i == '\t')
 				count += 8 - count % 8;
 			else
@@ -134,7 +134,7 @@ void data::parse(const char* first, const char* second)
 
 		for (const auto& pair : _byte_expr)
 		{
-			uint16_t val = parse_expr(pair.second.first.c_str(),
+			int16_t val = parse_expr(pair.second.first.c_str(),
 				pair.second.first.c_str() + pair.second.first.size());
 
 			if (pair.second.second == '-')
@@ -183,7 +183,7 @@ uint16_t data::parse_expr(const char* first, const char* second)
 
 	std::swap(results, _results);
 	std::swap(productions, _productions);
-	ret = _acc.top();
+	ret = static_cast<uint16_t>(_acc.top());
 	_acc.pop();
 	return ret;
 }
@@ -196,15 +196,15 @@ void data::clear()
 	_rel_addr.clear();
 	_byte_expr.clear();
 	_word_expr.clear();
-	_cc = ~0;
-	_c = ~0;
-	_dd = ~0;
-	_pp = ~0;
-	_qq = ~0;
-	_r = ~0;
-	_r2 = ~0;
-	_rr = ~0;
-	_integer = ~0;
+	_cc = static_cast<uint8_t>(~0);
+	_c = static_cast<uint8_t>(~0);
+	_dd = static_cast<uint8_t>(~0);
+	_pp = static_cast<uint8_t>(~0);
+	_qq = static_cast<uint8_t>(~0);
+	_r = static_cast<uint8_t>(~0);
+	_r2 = static_cast<uint8_t>(~0);
+	_rr = static_cast<uint8_t>(~0);
+	_integer = static_cast<uint16_t>(~0);
 	_plus_minus = '+';
 
 	for (; !_acc.empty(); _acc.pop())

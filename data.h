@@ -55,15 +55,15 @@ struct data
 	std::map<std::size_t, std::pair<std::string, char>> _byte_expr;
 	// 16 bit expressions
 	std::map<std::size_t, std::string> _word_expr;
-	uint8_t _cc = ~0;
-	uint8_t _c = ~0;
-	uint8_t _dd = ~0;
-	uint8_t _pp = ~0;
-	uint8_t _qq = ~0;
-	uint8_t _r = ~0;
-	uint8_t _r2 = ~0;
-	uint8_t _rr = ~0;
-	uint16_t _integer = ~0;
+	uint8_t _cc = static_cast<uint8_t>(~0);
+	uint8_t _c = static_cast<uint8_t>(~0);
+	uint8_t _dd = static_cast<uint8_t>(~0);
+	uint8_t _pp = static_cast<uint8_t>(~0);
+	uint8_t _qq = static_cast<uint8_t>(~0);
+	uint8_t _r = static_cast<uint8_t>(~0);
+	uint8_t _r2 = static_cast<uint8_t>(~0);
+	uint8_t _rr = static_cast<uint8_t>(~0);
+	uint16_t _integer = static_cast<uint16_t>(~0);
 	char _plus_minus = '+';
 	std::stack<int> _acc;
 	program _program;
