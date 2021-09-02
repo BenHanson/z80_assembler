@@ -32,7 +32,6 @@ void data::push_word(const uint16_t w)
 void data::rel_label(const std::size_t idx)
 {
 	const std::string name = dollar(idx).str();
-	auto iter = _label.find(name);
 
 	_rel_addr[_program._memory.size() - 1] = name;
 }
