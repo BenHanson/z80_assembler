@@ -37,11 +37,17 @@ void save(program& program, const char* src, const char* dest)
 	}
 }
 
+const char* usage()
+{
+	return "USAGE: z80_assembler <pathname> "
+		"[<source .sna> <dest .sna>] [-(dec|hex)] [-(jr_off|jr_addr)]\n";
+}
+
 int main(int argc, const char* argv[])
 {
-	if (argc != 2 && argc != 4)
+	if (argc < 2)
 	{
-		std::cout << "USAGE: z80_assembler <pathname> [<source .sna> <dest .sna>]\n";
+		std::cout << usage();
 		return 1;
 	}
 
@@ -49,12 +55,34 @@ int main(int argc, const char* argv[])
 	{
 		lexertl::memory_file mf(argv[1]);
 		data data;
+		std::vector<const char*> pathnames;
+		base base = base::decimal;
+		relative relative = relative::absolute;
+
+		for (int i = 2; i < argc; ++i)
+		{
+			const char* arg = argv[i];
+
+			if (::strcmp(arg, "-dec") == 0)
+				base = base::decimal;
+			else if (::strcmp(arg, "-hex") == 0)
+				base = base::hexadecimal;
+			else if (::strcmp(arg, "-jr_off") == 0)
+				relative = relative::offset;
+			else if (::strcmp(arg, "-jr_addr") == 0)
+				relative = relative::absolute;
+			else
+				pathnames.push_back(arg);
+		}
 
 		if (!mf.data())
 			throw std::runtime_error("Unable to open " + std::string(argv[1]));
 
+		if (!(pathnames.empty() || pathnames.size() == 2))
+			throw std::runtime_error(usage());
+
 		build_parsers(data);
-		data.parse(mf.data(), mf.data() + mf.size());
+		data.parse(mf.data(), mf.data() + mf.size(), relative::offset);
 		mf.close();
 
 		if (data._program._org + data._program._memory.size() - 1 > 65535)
@@ -63,7 +91,7 @@ int main(int argc, const char* argv[])
 		if (argc == 4)
 			save(data._program, argv[2], argv[3]);
 		else
-			dump(data._program, base::decimal, relative::expand);
+			dump(data._program, base, relative::absolute);
 
 		return 0;
 	}

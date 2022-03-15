@@ -57,7 +57,7 @@ void data::wexpr(const int32_t idx)
 	_word_expr[_program._memory.size() - 2] = name;
 }
 
-void data::parse(const char* first, const char* second)
+void data::parse(const char* first, const char* second, const relative relative)
 {
 	lexertl::citerator iter(first, second, _lsm);
 
@@ -116,9 +116,20 @@ void data::parse(const char* first, const char* second)
 	{
 		for (const auto& pair : _rel_addr)
 		{
-			const uint16_t val = parse_expr(pair.second.c_str(),
-				pair.second.c_str() + pair.second.size());
-			const int off = static_cast<int>(val - (_program._org + pair.first + 1));
+			int off = 0;
+
+			if (relative == relative::absolute)
+			{
+				const uint16_t val = parse_expr(pair.second.c_str(),
+					pair.second.c_str() + pair.second.size());
+
+				off = static_cast<int>(val - (_program._org + pair.first + 1));
+			}
+			else
+			{
+				off = static_cast<int8_t>(parse_expr(pair.second.c_str(),
+					pair.second.c_str() + pair.second.size()));
+			}
 
 			if (off < -128 || off > 127)
 			{

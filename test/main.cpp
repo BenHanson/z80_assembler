@@ -56,7 +56,10 @@ void replace_vars(std::string& str, const base base)
 			str[idx] = '1';
 
 			if (base == base::hexadecimal)
+			{
+				str.insert(idx + 1, 1, 'h');
 				str.insert(idx, 1, '0');
+			}
 
 			break;
 		case 'n':
@@ -65,7 +68,12 @@ void replace_vars(std::string& str, const base base)
 			str[idx] = '1';
 
 			if (base == base::hexadecimal)
+			{
+				if (idx + 1 == str.size() || str[idx + 1] == ')')
+					str.insert(idx + 1, 1, 'h');
+
 				str.insert(idx, 1, '0');
+			}
 
 			break;
 		case 'e':
@@ -73,6 +81,7 @@ void replace_vars(std::string& str, const base base)
 			{
 				//FEh
 				str[idx] = 'E';
+				str.insert(idx + 1, 1, 'h');
 				str.insert(idx, 1, 'F');
 			}
 			else
@@ -140,12 +149,12 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 				std::string cmd = "d EQU 01h\r\n"
 					"n EQU 01h\r\n"
 					"nn EQU 0101h\r\n"
-					"e:\r\n" + text + "\r\n";
+					"e EQU FEh\r\n" + text + "\r\n";
 				const uint8_t* end = nullptr;
 
 				data._program._org = 16384;
-				data.parse(cmd.data(), cmd.data() + cmd.size());
-				cmd = mnemonic(data._program, base::hexadecimal, end, relative::as_is);
+				data.parse(cmd.data(), cmd.data() + cmd.size(), relative::offset);
+				cmd = mnemonic(data._program, base::hexadecimal, end, relative::offset);
 				replace_vars(text, base::hexadecimal);
 
 				if (opcodes != data._program._memory || cmd != text)

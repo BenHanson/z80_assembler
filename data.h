@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enums.h"
 #include "../lexertl14/include/lexertl/iterator.hpp"
 #include "../parsertl14/include/parsertl/token.hpp"
 #include "../parsertl14/include/parsertl/match_results.hpp"
@@ -77,7 +78,7 @@ struct data
 	void bexpr(const int32_t idx, const char op);
 	void wexpr(const int32_t idx);
 
-	void parse(const char* first, const char* second);
+	void parse(const char* first, const char* second, const relative relative);
 	uint16_t parse_expr(const char* first, const char* second);
 
 	void clear();

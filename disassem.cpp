@@ -16,6 +16,9 @@ std::string bto_string(const uint8_t* curr, const base base, const bool is_signe
 	else
 		data << static_cast<uint16_t>(*curr);
 
+	if (base == base::hexadecimal)
+		data << 'h';
+
 	++curr;
 	return data.str();
 }
@@ -32,6 +35,10 @@ std::string wto_string(const uint8_t*& curr, const base base)
 
 	val += 256 * *++curr;
 	data << val;
+
+	if (base == base::hexadecimal)
+		data << 'h';
+
 	return data.str();
 }
 
@@ -2196,7 +2203,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x10:
 		ret << "DJNZ ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2235,7 +2242,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x18:
 		ret << "JR ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2274,7 +2281,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x20:
 		ret << "JR NZ, ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2313,7 +2320,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x28:
 		ret << "JR Z, ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2352,7 +2359,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x30:
 		ret << "JR NC, ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2391,7 +2398,7 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	case 0x38:
 		ret << "JR C, ";
 
-		if (relative == relative::as_is)
+		if (relative == relative::offset)
 			ret << bto_string(++curr, base, true);
 		else
 		{
@@ -2833,8 +2840,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "ADD A, " << bto_string(++curr, base);
 		break;
 	case 0xc7:
-		ret << "RST 00H";
+	{
+		uint8_t val = 0;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xc8:
 		ret << "RET Z";
 		break;
@@ -2857,8 +2868,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "ADC A, " << bto_string(++curr, base);
 		break;
 	case 0xcf:
-		ret << "RST 08H";
+	{
+		uint8_t val = 8;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xd0:
 		ret << "RET NC";
 		break;
@@ -2881,8 +2896,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "SUB " << bto_string(++curr, base);
 		break;
 	case 0xd7:
-		ret << "RST 10H";
+	{
+		uint8_t val = 0x10;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xd8:
 		ret << "RET C";
 		break;
@@ -2905,8 +2924,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "SBC A, " << bto_string(++curr, base);
 		break;
 	case 0xdf:
-		ret << "RST 18H";
+	{
+		uint8_t val = 0x18;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xe0:
 		ret << "RET PO";
 		break;
@@ -2929,8 +2952,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "AND " << bto_string(++curr, base);
 		break;
 	case 0xe7:
-		ret << "RST 20H";
+	{
+		uint8_t val = 0x20;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xe8:
 		ret << "RET PE";
 		break;
@@ -2953,8 +2980,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "XOR " << bto_string(++curr, base);
 		break;
 	case 0xef:
-		ret << "RST 28H";
+	{
+		uint8_t val = 0x28;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xf0:
 		ret << "RET P";
 		break;
@@ -2977,8 +3008,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "OR " << bto_string(++curr, base);
 		break;
 	case 0xf7:
-		ret << "RST 30H";
+	{
+		uint8_t val = 0x30;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	case 0xf8:
 		ret << "RET M";
 		break;
@@ -3001,8 +3036,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "CP " << bto_string(++curr, base);
 		break;
 	case 0xff:
-		ret << "RST 38H";
+	{
+		uint8_t val = 0x38;
+
+		ret << "RST " << bto_string(&val, base);
 		break;
+	}
 	}
 
 	++curr;
