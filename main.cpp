@@ -82,7 +82,7 @@ int main(int argc, const char* argv[])
 			throw std::runtime_error(usage());
 
 		build_parsers(data);
-		data.parse(mf.data(), mf.data() + mf.size(), relative::offset);
+		data.parse(mf.data(), mf.data() + mf.size(), relative);
 		mf.close();
 
 		if (data._program._org + data._program._memory.size() - 1 > 65535)
@@ -91,7 +91,7 @@ int main(int argc, const char* argv[])
 		if (argc == 4)
 			save(data._program, argv[2], argv[3]);
 		else
-			dump(data._program, base, relative::absolute);
+			dump(data._program, base, relative);
 
 		return 0;
 	}
