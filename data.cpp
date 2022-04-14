@@ -217,6 +217,6 @@ void data::clear()
 	_integer = static_cast<uint16_t>(~0);
 	_plus_minus = '+';
 
-	for (; !_acc.empty(); _acc.pop())
-		;
+	while (!_acc.empty())
+		_acc.pop();
 }

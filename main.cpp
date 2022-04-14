@@ -88,7 +88,7 @@ int main(int argc, const char* argv[])
 		if (data._program._org + data._program._memory.size() - 1 > 65535)
 			throw std::runtime_error("Code exceeds memory limit (65535)");
 
-		if (argc == 4)
+		if (pathnames.size() == 2)
 			save(data._program, argv[2], argv[3]);
 		else
 			dump(data._program, base, relative);

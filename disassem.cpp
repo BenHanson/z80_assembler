@@ -2124,12 +2124,13 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		if (base == base::hexadecimal)
 			ret << std::setw(2) << std::setfill('0');
 
-		ret << 237 << ", ";
+		ret << 237;
 
 		if (base == base::hexadecimal)
-			ret << std::setw(2) << std::setfill('0');
+			ret << 'h';
 
-		ret << static_cast<uint16_t>(*curr);
+		ret << ", ";
+		ret << bto_string(curr, base);
 		break;
 	}
 
@@ -2211,7 +2212,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -2250,7 +2253,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -2289,7 +2294,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -2328,7 +2335,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -2367,7 +2376,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -2406,7 +2417,9 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 			if (base == base::hexadecimal)
 			{
-				ret << std::setw(4) << std::setfill('0') << addr;
+				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+
+				ret << wto_string(ptr, base);
 			}
 			else
 				ret << addr;
@@ -3089,7 +3102,7 @@ void dump(const program& program, const base base, const relative relative)
 					else
 						data << std::setw(4);
 
-					data << num;
+					data << num << 'h';
 					line += data.str();
 				}
 				else
