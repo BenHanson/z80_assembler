@@ -3074,7 +3074,7 @@ void dump(const program& program, const base base, const relative relative)
 	{
 		bool code = true;
 		const uint8_t* curr = first;
-		const std::size_t index = first - &program._memory.front();
+		std::size_t index = first - &program._memory.front();
 		std::ostringstream ss;
 		std::size_t offset = 0;
 
@@ -3114,11 +3114,26 @@ void dump(const program& program, const base base, const relative relative)
 			}
 			case program::block::type::db:
 				line = "DB " + bto_string(first++, base);
+				++index;
+
+				for (int i = 0; i < 3 && index < iter->_end; ++i, ++first, ++index)
+				{
+					line += ", " + bto_string(first, base);
+				}
+
 				code = false;
 				break;
 			case program::block::type::dw:
 				line = "DW " + wto_string(first, base);
 				++first;
+				index += 2;
+
+				if (index < iter->_end)
+				{
+					line += ", " + wto_string(first, base);
+					++first;
+				}
+
 				code = false;
 				break;
 			default:
