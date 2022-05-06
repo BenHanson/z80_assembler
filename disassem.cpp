@@ -45,7 +45,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 [[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr, const char xy, const base base)
 {
 	std::ostringstream ret;
-	std::string data = bto_string(curr, base);
+	std::string data = bto_string(curr, base, true);
 
 	switch (*++curr)
 	{
@@ -871,13 +871,13 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "L, " << bto_string(++curr, base);
 		break;
 	case 0x34:
-		ret << "INC (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "INC (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x35:
-		ret << "DEC (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "DEC (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x36:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), ";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), ";
 		// Separate line due to pre-increment/evaluation order/clang warning
 		ret << bto_string(++curr, base);
 		break;
@@ -891,7 +891,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD B, I" << xy << 'L';
 		break;
 	case 0x46:
-		ret << "LD B, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD B, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x4c:
 		ret << "LD C, I" << xy << 'H';
@@ -900,7 +900,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD C, I" << xy << 'L';
 		break;
 	case 0x4e:
-		ret << "LD C, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD C, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x54:
 		ret << "LD D, I" << xy << 'H';
@@ -909,7 +909,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD D, I" << xy << 'L';
 		break;
 	case 0x56:
-		ret << "LD D, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD D, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x5c:
 		ret << "LD E, I" << xy << 'H';
@@ -918,7 +918,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD E, I" << xy << 'L';
 		break;
 	case 0x5e:
-		ret << "LD E, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD E, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x60:
 		ret << "LD I" << xy << "H, B";
@@ -939,7 +939,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "H, I" << xy << 'L';
 		break;
 	case 0x66:
-		ret << "LD H, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD H, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x67:
 		ret << "LD I" << xy << "H, A";
@@ -963,31 +963,31 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "L, I" << xy << 'L';
 		break;
 	case 0x6e:
-		ret << "LD L, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD L, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x6f:
 		ret << "LD I" << xy << "L, A";
 		break;
 	case 0x70:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), B";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), B";
 		break;
 	case 0x71:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), C";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), C";
 		break;
 	case 0x72:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), D";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), D";
 		break;
 	case 0x73:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), E";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), E";
 		break;
 	case 0x74:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), H";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), H";
 		break;
 	case 0x75:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), L";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), L";
 		break;
 	case 0x77:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base) << "), A";
+		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), A";
 		break;
 	case 0x7c:
 		ret << "LD A, I" << xy << 'H';
@@ -996,7 +996,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD A, I" << xy << 'L';
 		break;
 	case 0x7e:
-		ret << "LD A, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "LD A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x84:
 		ret << "ADD A, I" << xy << 'H';
@@ -1005,7 +1005,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADD A, I" << xy << 'L';
 		break;
 	case 0x86:
-		ret << "ADD A, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "ADD A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x8c:
 		ret << "ADC A, I" << xy << 'H';
@@ -1014,7 +1014,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC A, I" << xy << 'L';
 		break;
 	case 0x8e:
-		ret << "ADC A, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "ADC A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x94:
 		ret << "SUB I" << xy << 'H';
@@ -1023,7 +1023,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SUB I" << xy << 'L';
 		break;
 	case 0x96:
-		ret << "SUB (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "SUB (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0x9c:
 		ret << "SBC A, I" << xy << 'H';
@@ -1032,7 +1032,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC A, I" << xy << 'L';
 		break;
 	case 0x9e:
-		ret << "SBC A, (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "SBC A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0xa4:
 		ret << "AND I" << xy << 'H';
@@ -1041,7 +1041,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "AND I" << xy << 'L';
 		break;
 	case 0xa6:
-		ret << "AND (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "AND (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0xac:
 		ret << "XOR I" << xy << 'H';
@@ -1050,7 +1050,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "XOR I" << xy << 'L';
 		break;
 	case 0xae:
-		ret << "XOR (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "XOR (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0xb4:
 		ret << "OR I" << xy << 'H';
@@ -1059,7 +1059,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "OR I" << xy << 'L';
 		break;
 	case 0xb6:
-		ret << "OR (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "OR (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0xbc:
 		ret << "CP I" << xy << 'H';
@@ -1068,7 +1068,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "CP I" << xy << 'L';
 		break;
 	case 0xbe:
-		ret << "CP (I" << xy << '+' << bto_string(++curr, base) << ')';
+		ret << "CP (I" << xy << '+' << bto_string(++curr, base, true) << ')';
 		break;
 	case 0xcb:
 		ret << dump_IX_IY_bits(++curr, xy, base);
