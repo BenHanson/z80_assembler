@@ -23,6 +23,33 @@ std::string bto_string(const uint8_t* curr, const base base, const bool is_signe
 	return data.str();
 }
 
+std::string sbto_string(const uint8_t* curr, const base base)
+{
+	int8_t byte = static_cast<int8_t>(*curr);
+	std::ostringstream data;
+
+	if (base == base::hexadecimal)
+	{
+		data << std::uppercase << std::hex << std::setfill('0') << std::setw(2);
+	}
+
+	if (base == base::decimal)
+	{
+		if (!(byte & 0x80))
+			data << '+';
+
+		data << static_cast<int>(byte);
+	}
+	else
+		data << static_cast<uint16_t>(byte);
+
+	if (base == base::hexadecimal)
+		data << 'h';
+
+	++curr;
+	return data.str();
+}
+
 std::string wto_string(const uint8_t*& curr, const base base)
 {
 	uint16_t val = *curr;
@@ -45,777 +72,778 @@ std::string wto_string(const uint8_t*& curr, const base base)
 [[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr, const char xy, const base base)
 {
 	std::ostringstream ret;
-	std::string data = bto_string(curr, base, true);
+	// Include '+' or '-'
+	std::string data = sbto_string(curr, base);
 
 	switch (*++curr)
 	{
 	case 0x00:
-		ret << "RLC (I" << xy << '+' << data << "), B";
+		ret << "RLC (I" << xy << data << "), B";
 		break;
 	case 0x01:
-		ret << "RLC (I" << xy << '+' << data << "), C";
+		ret << "RLC (I" << xy << data << "), C";
 		break;
 	case 0x02:
-		ret << "RLC (I" << xy << '+' << data << "), D";
+		ret << "RLC (I" << xy << data << "), D";
 		break;
 	case 0x03:
-		ret << "RLC (I" << xy << '+' << data << "), E";
+		ret << "RLC (I" << xy << data << "), E";
 		break;
 	case 0x04:
-		ret << "RLC (I" << xy << '+' << data << "), H";
+		ret << "RLC (I" << xy << data << "), H";
 		break;
 	case 0x05:
-		ret << "RLC (I" << xy << '+' << data << "), L";
+		ret << "RLC (I" << xy << data << "), L";
 		break;
 	case 0x06:
-		ret << "RLC (I" << xy << '+' << data << ")";
+		ret << "RLC (I" << xy << data << ")";
 		break;
 	case 0x07:
-		ret << "RLC (I" << xy << '+' << data << "), A";
+		ret << "RLC (I" << xy << data << "), A";
 		break;
 	case 0x08:
-		ret << "RRC (I" << xy << '+' << data << "), B";
+		ret << "RRC (I" << xy << data << "), B";
 		break;
 	case 0x09:
-		ret << "RRC (I" << xy << '+' << data << "), C";
+		ret << "RRC (I" << xy << data << "), C";
 		break;
 	case 0x0a:
-		ret << "RRC (I" << xy << '+' << data << "), D";
+		ret << "RRC (I" << xy << data << "), D";
 		break;
 	case 0x0b:
-		ret << "RRC (I" << xy << '+' << data << "), E";
+		ret << "RRC (I" << xy << data << "), E";
 		break;
 	case 0x0c:
-		ret << "RRC (I" << xy << '+' << data << "), H";
+		ret << "RRC (I" << xy << data << "), H";
 		break;
 	case 0x0d:
-		ret << "RRC (I" << xy << '+' << data << "), L";
+		ret << "RRC (I" << xy << data << "), L";
 		break;
 	case 0x0e:
-		ret << "RRC (I" << xy << '+' << data << ")";
+		ret << "RRC (I" << xy << data << ")";
 		break;
 	case 0x0f:
-		ret << "RRC (I" << xy << '+' << data << "), A";
+		ret << "RRC (I" << xy << data << "), A";
 		break;
 	case 0x10:
-		ret << "RL (I" << xy << '+' << data << "), B";
+		ret << "RL (I" << xy << data << "), B";
 		break;
 	case 0x11:
-		ret << "RL (I" << xy << '+' << data << "), C";
+		ret << "RL (I" << xy << data << "), C";
 		break;
 	case 0x12:
-		ret << "RL (I" << xy << '+' << data << "), D";
+		ret << "RL (I" << xy << data << "), D";
 		break;
 	case 0x13:
-		ret << "RL (I" << xy << '+' << data << "), E";
+		ret << "RL (I" << xy << data << "), E";
 		break;
 	case 0x14:
-		ret << "RL (I" << xy << '+' << data << "), H";
+		ret << "RL (I" << xy << data << "), H";
 		break;
 	case 0x15:
-		ret << "RL (I" << xy << '+' << data << "), L";
+		ret << "RL (I" << xy << data << "), L";
 		break;
 	case 0x16:
-		ret << "RL (I" << xy << '+' << data << ")";
+		ret << "RL (I" << xy << data << ")";
 		break;
 	case 0x17:
-		ret << "RL (I" << xy << '+' << data << "), A";
+		ret << "RL (I" << xy << data << "), A";
 		break;
 	case 0x18:
-		ret << "RR (I" << xy << '+' << data << "), B";
+		ret << "RR (I" << xy << data << "), B";
 		break;
 	case 0x19:
-		ret << "RR (I" << xy << '+' << data << "), C";
+		ret << "RR (I" << xy << data << "), C";
 		break;
 	case 0x1a:
-		ret << "RR (I" << xy << '+' << data << "), D";
+		ret << "RR (I" << xy << data << "), D";
 		break;
 	case 0x1b:
-		ret << "RR (I" << xy << '+' << data << "), E";
+		ret << "RR (I" << xy << data << "), E";
 		break;
 	case 0x1c:
-		ret << "RR (I" << xy << '+' << data << "), H";
+		ret << "RR (I" << xy << data << "), H";
 		break;
 	case 0x1d:
-		ret << "RR (I" << xy << '+' << data << "), L";
+		ret << "RR (I" << xy << data << "), L";
 		break;
 	case 0x1e:
-		ret << "RR (I" << xy << '+' << data << ")";
+		ret << "RR (I" << xy << data << ")";
 		break;
 	case 0x1f:
-		ret << "RR (I" << xy << '+' << data << "), A";
+		ret << "RR (I" << xy << data << "), A";
 		break;
 	case 0x20:
-		ret << "SLA (I" << xy << '+' << data << "), B";
+		ret << "SLA (I" << xy << data << "), B";
 		break;
 	case 0x21:
-		ret << "SLA (I" << xy << '+' << data << "), C";
+		ret << "SLA (I" << xy << data << "), C";
 		break;
 	case 0x22:
-		ret << "SLA (I" << xy << '+' << data << "), D";
+		ret << "SLA (I" << xy << data << "), D";
 		break;
 	case 0x23:
-		ret << "SLA (I" << xy << '+' << data << "), E";
+		ret << "SLA (I" << xy << data << "), E";
 		break;
 	case 0x24:
-		ret << "SLA (I" << xy << '+' << data << "), H";
+		ret << "SLA (I" << xy << data << "), H";
 		break;
 	case 0x25:
-		ret << "SLA (I" << xy << '+' << data << "), L";
+		ret << "SLA (I" << xy << data << "), L";
 		break;
 	case 0x26:
-		ret << "SLA (I" << xy << '+' << data << ")";
+		ret << "SLA (I" << xy << data << ")";
 		break;
 	case 0x27:
-		ret << "SLA (I" << xy << '+' << data << "), A";
+		ret << "SLA (I" << xy << data << "), A";
 		break;
 	case 0x28:
-		ret << "SRA (I" << xy << '+' << data << "), B";
+		ret << "SRA (I" << xy << data << "), B";
 		break;
 	case 0x29:
-		ret << "SRA (I" << xy << '+' << data << "), C";
+		ret << "SRA (I" << xy << data << "), C";
 		break;
 	case 0x2a:
-		ret << "SRA (I" << xy << '+' << data << "), D";
+		ret << "SRA (I" << xy << data << "), D";
 		break;
 	case 0x2b:
-		ret << "SRA (I" << xy << '+' << data << "), E";
+		ret << "SRA (I" << xy << data << "), E";
 		break;
 	case 0x2c:
-		ret << "SRA (I" << xy << '+' << data << "), H";
+		ret << "SRA (I" << xy << data << "), H";
 		break;
 	case 0x2d:
-		ret << "SRA (I" << xy << '+' << data << "), L";
+		ret << "SRA (I" << xy << data << "), L";
 		break;
 	case 0x2e:
-		ret << "SRA (I" << xy << '+' << data << ")";
+		ret << "SRA (I" << xy << data << ")";
 		break;
 	case 0x2f:
-		ret << "SRA (I" << xy << '+' << data << "), A";
+		ret << "SRA (I" << xy << data << "), A";
 		break;
 	case 0x30:
-		ret << "SLL (I" << xy << '+' << data << "), B";
+		ret << "SLL (I" << xy << data << "), B";
 		break;
 	case 0x31:
-		ret << "SLL (I" << xy << '+' << data << "), C";
+		ret << "SLL (I" << xy << data << "), C";
 		break;
 	case 0x32:
-		ret << "SLL (I" << xy << '+' << data << "), D";
+		ret << "SLL (I" << xy << data << "), D";
 		break;
 	case 0x33:
-		ret << "SLL (I" << xy << '+' << data << "), E";
+		ret << "SLL (I" << xy << data << "), E";
 		break;
 	case 0x34:
-		ret << "SLL (I" << xy << '+' << data << "), H";
+		ret << "SLL (I" << xy << data << "), H";
 		break;
 	case 0x35:
-		ret << "SLL (I" << xy << '+' << data << "), L";
+		ret << "SLL (I" << xy << data << "), L";
 		break;
 	case 0x36:
-		ret << "SLL (I" << xy << '+' << data << ")";
+		ret << "SLL (I" << xy << data << ")";
 		break;
 	case 0x37:
-		ret << "SLL (I" << xy << '+' << data << "), A";
+		ret << "SLL (I" << xy << data << "), A";
 		break;
 	case 0x38:
-		ret << "SRL (I" << xy << '+' << data << "), B";
+		ret << "SRL (I" << xy << data << "), B";
 		break;
 	case 0x39:
-		ret << "SRL (I" << xy << '+' << data << "), C";
+		ret << "SRL (I" << xy << data << "), C";
 		break;
 	case 0x3a:
-		ret << "SRL (I" << xy << '+' << data << "), D";
+		ret << "SRL (I" << xy << data << "), D";
 		break;
 	case 0x3b:
-		ret << "SRL (I" << xy << '+' << data << "), E";
+		ret << "SRL (I" << xy << data << "), E";
 		break;
 	case 0x3c:
-		ret << "SRL (I" << xy << '+' << data << "), H";
+		ret << "SRL (I" << xy << data << "), H";
 		break;
 	case 0x3d:
-		ret << "SRL (I" << xy << '+' << data << "), L";
+		ret << "SRL (I" << xy << data << "), L";
 		break;
 	case 0x3e:
-		ret << "SRL (I" << xy << '+' << data << ")";
+		ret << "SRL (I" << xy << data << ")";
 		break;
 	case 0x3f:
-		ret << "SRL (I" << xy << '+' << data << "), A";
+		ret << "SRL (I" << xy << data << "), A";
 		break;
 	case 0x40:
-		ret << "BIT 0, (I" << xy << '+' << data << "), B";
+		ret << "BIT 0, (I" << xy << data << "), B";
 		break;
 	case 0x41:
-		ret << "BIT 0, (I" << xy << '+' << data << "), C";
+		ret << "BIT 0, (I" << xy << data << "), C";
 		break;
 	case 0x42:
-		ret << "BIT 0, (I" << xy << '+' << data << "), D";
+		ret << "BIT 0, (I" << xy << data << "), D";
 		break;
 	case 0x43:
-		ret << "BIT 0, (I" << xy << '+' << data << "), E";
+		ret << "BIT 0, (I" << xy << data << "), E";
 		break;
 	case 0x44:
-		ret << "BIT 0, (I" << xy << '+' << data << "), H";
+		ret << "BIT 0, (I" << xy << data << "), H";
 		break;
 	case 0x45:
-		ret << "BIT 0, (I" << xy << '+' << data << "), L";
+		ret << "BIT 0, (I" << xy << data << "), L";
 		break;
 	case 0x47:
-		ret << "BIT 0, (I" << xy << '+' << data << "), A";
+		ret << "BIT 0, (I" << xy << data << "), A";
 		break;
 	case 0x46:
-		ret << "BIT 0, (I" << xy << '+' << data << ")";
+		ret << "BIT 0, (I" << xy << data << ")";
 		break;
 	case 0x48:
-		ret << "BIT 1, (I" << xy << '+' << data << "), B";
+		ret << "BIT 1, (I" << xy << data << "), B";
 		break;
 	case 0x49:
-		ret << "BIT 1, (I" << xy << '+' << data << "), C";
+		ret << "BIT 1, (I" << xy << data << "), C";
 		break;
 	case 0x4a:
-		ret << "BIT 1, (I" << xy << '+' << data << "), D";
+		ret << "BIT 1, (I" << xy << data << "), D";
 		break;
 	case 0x4b:
-		ret << "BIT 1, (I" << xy << '+' << data << "), E";
+		ret << "BIT 1, (I" << xy << data << "), E";
 		break;
 	case 0x4c:
-		ret << "BIT 1, (I" << xy << '+' << data << "), H";
+		ret << "BIT 1, (I" << xy << data << "), H";
 		break;
 	case 0x4d:
-		ret << "BIT 1, (I" << xy << '+' << data << "), L";
+		ret << "BIT 1, (I" << xy << data << "), L";
 		break;
 	case 0x4e:
-		ret << "BIT 1, (I" << xy << '+' << data << ")";
+		ret << "BIT 1, (I" << xy << data << ")";
 		break;
 	case 0x4f:
-		ret << "BIT 1, (I" << xy << '+' << data << "), A";
+		ret << "BIT 1, (I" << xy << data << "), A";
 		break;
 	case 0x50:
-		ret << "BIT 2, (I" << xy << '+' << data << "), B";
+		ret << "BIT 2, (I" << xy << data << "), B";
 		break;
 	case 0x51:
-		ret << "BIT 2, (I" << xy << '+' << data << "), C";
+		ret << "BIT 2, (I" << xy << data << "), C";
 		break;
 	case 0x52:
-		ret << "BIT 2, (I" << xy << '+' << data << "), D";
+		ret << "BIT 2, (I" << xy << data << "), D";
 		break;
 	case 0x53:
-		ret << "BIT 2, (I" << xy << '+' << data << "), E";
+		ret << "BIT 2, (I" << xy << data << "), E";
 		break;
 	case 0x54:
-		ret << "BIT 2, (I" << xy << '+' << data << "), H";
+		ret << "BIT 2, (I" << xy << data << "), H";
 		break;
 	case 0x55:
-		ret << "BIT 2, (I" << xy << '+' << data << "), L";
+		ret << "BIT 2, (I" << xy << data << "), L";
 		break;
 	case 0x56:
-		ret << "BIT 2, (I" << xy << '+' << data << ")";
+		ret << "BIT 2, (I" << xy << data << ")";
 		break;
 	case 0x57:
-		ret << "BIT 2, (I" << xy << '+' << data << "), A";
+		ret << "BIT 2, (I" << xy << data << "), A";
 		break;
 	case 0x58:
-		ret << "BIT 3, (I" << xy << '+' << data << "), B";
+		ret << "BIT 3, (I" << xy << data << "), B";
 		break;
 	case 0x59:
-		ret << "BIT 3, (I" << xy << '+' << data << "), C";
+		ret << "BIT 3, (I" << xy << data << "), C";
 		break;
 	case 0x5a:
-		ret << "BIT 3, (I" << xy << '+' << data << "), D";
+		ret << "BIT 3, (I" << xy << data << "), D";
 		break;
 	case 0x5b:
-		ret << "BIT 3, (I" << xy << '+' << data << "), E";
+		ret << "BIT 3, (I" << xy << data << "), E";
 		break;
 	case 0x5c:
-		ret << "BIT 3, (I" << xy << '+' << data << "), H";
+		ret << "BIT 3, (I" << xy << data << "), H";
 		break;
 	case 0x5d:
-		ret << "BIT 3, (I" << xy << '+' << data << "), L";
+		ret << "BIT 3, (I" << xy << data << "), L";
 		break;
 	case 0x5e:
-		ret << "BIT 3, (I" << xy << '+' << data << ")";
+		ret << "BIT 3, (I" << xy << data << ")";
 		break;
 	case 0x5f:
-		ret << "BIT 3, (I" << xy << '+' << data << "), A";
+		ret << "BIT 3, (I" << xy << data << "), A";
 		break;
 	case 0x60:
-		ret << "BIT 4, (I" << xy << '+' << data << "), B";
+		ret << "BIT 4, (I" << xy << data << "), B";
 		break;
 	case 0x61:
-		ret << "BIT 4, (I" << xy << '+' << data << "), C";
+		ret << "BIT 4, (I" << xy << data << "), C";
 		break;
 	case 0x62:
-		ret << "BIT 4, (I" << xy << '+' << data << "), D";
+		ret << "BIT 4, (I" << xy << data << "), D";
 		break;
 	case 0x63:
-		ret << "BIT 4, (I" << xy << '+' << data << "), E";
+		ret << "BIT 4, (I" << xy << data << "), E";
 		break;
 	case 0x64:
-		ret << "BIT 4, (I" << xy << '+' << data << "), H";
+		ret << "BIT 4, (I" << xy << data << "), H";
 		break;
 	case 0x65:
-		ret << "BIT 4, (I" << xy << '+' << data << "), L";
+		ret << "BIT 4, (I" << xy << data << "), L";
 		break;
 	case 0x66:
-		ret << "BIT 4, (I" << xy << '+' << data << ")";
+		ret << "BIT 4, (I" << xy << data << ")";
 		break;
 	case 0x67:
-		ret << "BIT 4, (I" << xy << '+' << data << "), A";
+		ret << "BIT 4, (I" << xy << data << "), A";
 		break;
 	case 0x68:
-		ret << "BIT 5, (I" << xy << '+' << data << "), B";
+		ret << "BIT 5, (I" << xy << data << "), B";
 		break;
 	case 0x69:
-		ret << "BIT 5, (I" << xy << '+' << data << "), C";
+		ret << "BIT 5, (I" << xy << data << "), C";
 		break;
 	case 0x6a:
-		ret << "BIT 5, (I" << xy << '+' << data << "), D";
+		ret << "BIT 5, (I" << xy << data << "), D";
 		break;
 	case 0x6b:
-		ret << "BIT 5, (I" << xy << '+' << data << "), E";
+		ret << "BIT 5, (I" << xy << data << "), E";
 		break;
 	case 0x6c:
-		ret << "BIT 5, (I" << xy << '+' << data << "), H";
+		ret << "BIT 5, (I" << xy << data << "), H";
 		break;
 	case 0x6d:
-		ret << "BIT 5, (I" << xy << '+' << data << "), L";
+		ret << "BIT 5, (I" << xy << data << "), L";
 		break;
 	case 0x6e:
-		ret << "BIT 5, (I" << xy << '+' << data << ")";
+		ret << "BIT 5, (I" << xy << data << ")";
 		break;
 	case 0x6f:
-		ret << "BIT 5, (I" << xy << '+' << data << "), A";
+		ret << "BIT 5, (I" << xy << data << "), A";
 		break;
 	case 0x70:
-		ret << "BIT 6, (I" << xy << '+' << data << "), B";
+		ret << "BIT 6, (I" << xy << data << "), B";
 		break;
 	case 0x71:
-		ret << "BIT 6, (I" << xy << '+' << data << "), C";
+		ret << "BIT 6, (I" << xy << data << "), C";
 		break;
 	case 0x72:
-		ret << "BIT 6, (I" << xy << '+' << data << "), D";
+		ret << "BIT 6, (I" << xy << data << "), D";
 		break;
 	case 0x73:
-		ret << "BIT 6, (I" << xy << '+' << data << "), E";
+		ret << "BIT 6, (I" << xy << data << "), E";
 		break;
 	case 0x74:
-		ret << "BIT 6, (I" << xy << '+' << data << "), H";
+		ret << "BIT 6, (I" << xy << data << "), H";
 		break;
 	case 0x75:
-		ret << "BIT 6, (I" << xy << '+' << data << "), L";
+		ret << "BIT 6, (I" << xy << data << "), L";
 		break;
 	case 0x76:
-		ret << "BIT 6, (I" << xy << '+' << data << ")";
+		ret << "BIT 6, (I" << xy << data << ")";
 		break;
 	case 0x77:
-		ret << "BIT 6, (I" << xy << '+' << data << "), A";
+		ret << "BIT 6, (I" << xy << data << "), A";
 		break;
 	case 0x78:
-		ret << "BIT 7, (I" << xy << '+' << data << "), B";
+		ret << "BIT 7, (I" << xy << data << "), B";
 		break;
 	case 0x79:
-		ret << "BIT 7, (I" << xy << '+' << data << "), C";
+		ret << "BIT 7, (I" << xy << data << "), C";
 		break;
 	case 0x7a:
-		ret << "BIT 7, (I" << xy << '+' << data << "), D";
+		ret << "BIT 7, (I" << xy << data << "), D";
 		break;
 	case 0x7b:
-		ret << "BIT 7, (I" << xy << '+' << data << "), E";
+		ret << "BIT 7, (I" << xy << data << "), E";
 		break;
 	case 0x7c:
-		ret << "BIT 7, (I" << xy << '+' << data << "), H";
+		ret << "BIT 7, (I" << xy << data << "), H";
 		break;
 	case 0x7d:
-		ret << "BIT 7, (I" << xy << '+' << data << "), L";
+		ret << "BIT 7, (I" << xy << data << "), L";
 		break;
 	case 0x7e:
-		ret << "BIT 7, (I" << xy << '+' << data << ")";
+		ret << "BIT 7, (I" << xy << data << ")";
 		break;
 	case 0x7f:
-		ret << "BIT 7, (I" << xy << '+' << data << "), A";
+		ret << "BIT 7, (I" << xy << data << "), A";
 		break;
 	case 0x80:
-		ret << "RES 0, (I" << xy << '+' << data << "), B";
+		ret << "RES 0, (I" << xy << data << "), B";
 		break;
 	case 0x81:
-		ret << "RES 0, (I" << xy << '+' << data << "), C";
+		ret << "RES 0, (I" << xy << data << "), C";
 		break;
 	case 0x82:
-		ret << "RES 0, (I" << xy << '+' << data << "), D";
+		ret << "RES 0, (I" << xy << data << "), D";
 		break;
 	case 0x83:
-		ret << "RES 0, (I" << xy << '+' << data << "), E";
+		ret << "RES 0, (I" << xy << data << "), E";
 		break;
 	case 0x84:
-		ret << "RES 0, (I" << xy << '+' << data << "), H";
+		ret << "RES 0, (I" << xy << data << "), H";
 		break;
 	case 0x85:
-		ret << "RES 0, (I" << xy << '+' << data << "), L";
+		ret << "RES 0, (I" << xy << data << "), L";
 		break;
 	case 0x86:
-		ret << "RES 0, (I" << xy << '+' << data << ")";
+		ret << "RES 0, (I" << xy << data << ")";
 		break;
 	case 0x87:
-		ret << "RES 0, (I" << xy << '+' << data << "), A";
+		ret << "RES 0, (I" << xy << data << "), A";
 		break;
 	case 0x88:
-		ret << "RES 1, (I" << xy << '+' << data << "), B";
+		ret << "RES 1, (I" << xy << data << "), B";
 		break;
 	case 0x89:
-		ret << "RES 1, (I" << xy << '+' << data << "), C";
+		ret << "RES 1, (I" << xy << data << "), C";
 		break;
 	case 0x8a:
-		ret << "RES 1, (I" << xy << '+' << data << "), D";
+		ret << "RES 1, (I" << xy << data << "), D";
 		break;
 	case 0x8b:
-		ret << "RES 1, (I" << xy << '+' << data << "), E";
+		ret << "RES 1, (I" << xy << data << "), E";
 		break;
 	case 0x8c:
-		ret << "RES 1, (I" << xy << '+' << data << "), H";
+		ret << "RES 1, (I" << xy << data << "), H";
 		break;
 	case 0x8d:
-		ret << "RES 1, (I" << xy << '+' << data << "), L";
+		ret << "RES 1, (I" << xy << data << "), L";
 		break;
 	case 0x8e:
-		ret << "RES 1, (I" << xy << '+' << data << ")";
+		ret << "RES 1, (I" << xy << data << ")";
 		break;
 	case 0x8f:
-		ret << "RES 1, (I" << xy << '+' << data << "), A";
+		ret << "RES 1, (I" << xy << data << "), A";
 		break;
 	case 0x90:
-		ret << "RES 2, (I" << xy << '+' << data << "), B";
+		ret << "RES 2, (I" << xy << data << "), B";
 		break;
 	case 0x91:
-		ret << "RES 2, (I" << xy << '+' << data << "), C";
+		ret << "RES 2, (I" << xy << data << "), C";
 		break;
 	case 0x92:
-		ret << "RES 2, (I" << xy << '+' << data << "), D";
+		ret << "RES 2, (I" << xy << data << "), D";
 		break;
 	case 0x93:
-		ret << "RES 2, (I" << xy << '+' << data << "), E";
+		ret << "RES 2, (I" << xy << data << "), E";
 		break;
 	case 0x94:
-		ret << "RES 2, (I" << xy << '+' << data << "), H";
+		ret << "RES 2, (I" << xy << data << "), H";
 		break;
 	case 0x95:
-		ret << "RES 2, (I" << xy << '+' << data << "), L";
+		ret << "RES 2, (I" << xy << data << "), L";
 		break;
 	case 0x96:
-		ret << "RES 2, (I" << xy << '+' << data << ")";
+		ret << "RES 2, (I" << xy << data << ")";
 		break;
 	case 0x97:
-		ret << "RES 2, (I" << xy << '+' << data << "), A";
+		ret << "RES 2, (I" << xy << data << "), A";
 		break;
 	case 0x98:
-		ret << "RES 3, (I" << xy << '+' << data << "), B";
+		ret << "RES 3, (I" << xy << data << "), B";
 		break;
 	case 0x99:
-		ret << "RES 3, (I" << xy << '+' << data << "), C";
+		ret << "RES 3, (I" << xy << data << "), C";
 		break;
 	case 0x9a:
-		ret << "RES 3, (I" << xy << '+' << data << "), D";
+		ret << "RES 3, (I" << xy << data << "), D";
 		break;
 	case 0x9b:
-		ret << "RES 3, (I" << xy << '+' << data << "), E";
+		ret << "RES 3, (I" << xy << data << "), E";
 		break;
 	case 0x9c:
-		ret << "RES 3, (I" << xy << '+' << data << "), H";
+		ret << "RES 3, (I" << xy << data << "), H";
 		break;
 	case 0x9d:
-		ret << "RES 3, (I" << xy << '+' << data << "), L";
+		ret << "RES 3, (I" << xy << data << "), L";
 		break;
 	case 0x9e:
-		ret << "RES 3, (I" << xy << '+' << data << ")";
+		ret << "RES 3, (I" << xy << data << ")";
 		break;
 	case 0x9f:
-		ret << "RES 3, (I" << xy << '+' << data << "), A";
+		ret << "RES 3, (I" << xy << data << "), A";
 		break;
 	case 0xa0:
-		ret << "RES 4, (I" << xy << '+' << data << "), B";
+		ret << "RES 4, (I" << xy << data << "), B";
 		break;
 	case 0xa1:
-		ret << "RES 4, (I" << xy << '+' << data << "), C";
+		ret << "RES 4, (I" << xy << data << "), C";
 		break;
 	case 0xa2:
-		ret << "RES 4, (I" << xy << '+' << data << "), D";
+		ret << "RES 4, (I" << xy << data << "), D";
 		break;
 	case 0xa3:
-		ret << "RES 4, (I" << xy << '+' << data << "), E";
+		ret << "RES 4, (I" << xy << data << "), E";
 		break;
 	case 0xa4:
-		ret << "RES 4, (I" << xy << '+' << data << "), H";
+		ret << "RES 4, (I" << xy << data << "), H";
 		break;
 	case 0xa5:
-		ret << "RES 4, (I" << xy << '+' << data << "), L";
+		ret << "RES 4, (I" << xy << data << "), L";
 		break;
 	case 0xa6:
-		ret << "RES 4, (I" << xy << '+' << data << ")";
+		ret << "RES 4, (I" << xy << data << ")";
 		break;
 	case 0xa7:
-		ret << "RES 4, (I" << xy << '+' << data << "), A";
+		ret << "RES 4, (I" << xy << data << "), A";
 		break;
 	case 0xa8:
-		ret << "RES 5, (I" << xy << '+' << data << "), B";
+		ret << "RES 5, (I" << xy << data << "), B";
 		break;
 	case 0xa9:
-		ret << "RES 5, (I" << xy << '+' << data << "), C";
+		ret << "RES 5, (I" << xy << data << "), C";
 		break;
 	case 0xaa:
-		ret << "RES 5, (I" << xy << '+' << data << "), D";
+		ret << "RES 5, (I" << xy << data << "), D";
 		break;
 	case 0xab:
-		ret << "RES 5, (I" << xy << '+' << data << "), E";
+		ret << "RES 5, (I" << xy << data << "), E";
 		break;
 	case 0xac:
-		ret << "RES 5, (I" << xy << '+' << data << "), H";
+		ret << "RES 5, (I" << xy << data << "), H";
 		break;
 	case 0xad:
-		ret << "RES 5, (I" << xy << '+' << data << "), L";
+		ret << "RES 5, (I" << xy << data << "), L";
 		break;
 	case 0xae:
-		ret << "RES 5, (I" << xy << '+' << data << ")";
+		ret << "RES 5, (I" << xy << data << ")";
 		break;
 	case 0xaf:
-		ret << "RES 5, (I" << xy << '+' << data << "), A";
+		ret << "RES 5, (I" << xy << data << "), A";
 		break;
 	case 0xb0:
-		ret << "RES 6, (I" << xy << '+' << data << "), B";
+		ret << "RES 6, (I" << xy << data << "), B";
 		break;
 	case 0xb1:
-		ret << "RES 6, (I" << xy << '+' << data << "), C";
+		ret << "RES 6, (I" << xy << data << "), C";
 		break;
 	case 0xb2:
-		ret << "RES 6, (I" << xy << '+' << data << "), D";
+		ret << "RES 6, (I" << xy << data << "), D";
 		break;
 	case 0xb3:
-		ret << "RES 6, (I" << xy << '+' << data << "), E";
+		ret << "RES 6, (I" << xy << data << "), E";
 		break;
 	case 0xb4:
-		ret << "RES 6, (I" << xy << '+' << data << "), H";
+		ret << "RES 6, (I" << xy << data << "), H";
 		break;
 	case 0xb5:
-		ret << "RES 6, (I" << xy << '+' << data << "), L";
+		ret << "RES 6, (I" << xy << data << "), L";
 		break;
 	case 0xb6:
-		ret << "RES 6, (I" << xy << '+' << data << ")";
+		ret << "RES 6, (I" << xy << data << ")";
 		break;
 	case 0xb7:
-		ret << "RES 6, (I" << xy << '+' << data << "), A";
+		ret << "RES 6, (I" << xy << data << "), A";
 		break;
 	case 0xb8:
-		ret << "RES 7, (I" << xy << '+' << data << "), B";
+		ret << "RES 7, (I" << xy << data << "), B";
 		break;
 	case 0xb9:
-		ret << "RES 7, (I" << xy << '+' << data << "), C";
+		ret << "RES 7, (I" << xy << data << "), C";
 		break;
 	case 0xba:
-		ret << "RES 7, (I" << xy << '+' << data << "), D";
+		ret << "RES 7, (I" << xy << data << "), D";
 		break;
 	case 0xbb:
-		ret << "RES 7, (I" << xy << '+' << data << "), E";
+		ret << "RES 7, (I" << xy << data << "), E";
 		break;
 	case 0xbc:
-		ret << "RES 7, (I" << xy << '+' << data << "), H";
+		ret << "RES 7, (I" << xy << data << "), H";
 		break;
 	case 0xbd:
-		ret << "RES 7, (I" << xy << '+' << data << "), L";
+		ret << "RES 7, (I" << xy << data << "), L";
 		break;
 	case 0xbe:
-		ret << "RES 7, (I" << xy << '+' << data << ")";
+		ret << "RES 7, (I" << xy << data << ")";
 		break;
 	case 0xbf:
-		ret << "RES 7, (I" << xy << '+' << data << "), A";
+		ret << "RES 7, (I" << xy << data << "), A";
 		break;
 	case 0xc0:
-		ret << "SET 0, (I" << xy << '+' << data << "), B";
+		ret << "SET 0, (I" << xy << data << "), B";
 		break;
 	case 0xc1:
-		ret << "SET 0, (I" << xy << '+' << data << "), C";
+		ret << "SET 0, (I" << xy << data << "), C";
 		break;
 	case 0xc2:
-		ret << "SET 0, (I" << xy << '+' << data << "), D";
+		ret << "SET 0, (I" << xy << data << "), D";
 		break;
 	case 0xc3:
-		ret << "SET 0, (I" << xy << '+' << data << "), E";
+		ret << "SET 0, (I" << xy << data << "), E";
 		break;
 	case 0xc4:
-		ret << "SET 0, (I" << xy << '+' << data << "), H";
+		ret << "SET 0, (I" << xy << data << "), H";
 		break;
 	case 0xc5:
-		ret << "SET 0, (I" << xy << '+' << data << "), L";
+		ret << "SET 0, (I" << xy << data << "), L";
 		break;
 	case 0xc6:
-		ret << "SET 0, (I" << xy << '+' << data << ")";
+		ret << "SET 0, (I" << xy << data << ")";
 		break;
 	case 0xc7:
-		ret << "SET 0, (I" << xy << '+' << data << "), A";
+		ret << "SET 0, (I" << xy << data << "), A";
 		break;
 	case 0xc8:
-		ret << "SET 1, (I" << xy << '+' << data << "), B";
+		ret << "SET 1, (I" << xy << data << "), B";
 		break;
 	case 0xc9:
-		ret << "SET 1, (I" << xy << '+' << data << "), C";
+		ret << "SET 1, (I" << xy << data << "), C";
 		break;
 	case 0xca:
-		ret << "SET 1, (I" << xy << '+' << data << "), D";
+		ret << "SET 1, (I" << xy << data << "), D";
 		break;
 	case 0xcb:
-		ret << "SET 1, (I" << xy << '+' << data << "), E";
+		ret << "SET 1, (I" << xy << data << "), E";
 		break;
 	case 0xcc:
-		ret << "SET 1, (I" << xy << '+' << data << "), H";
+		ret << "SET 1, (I" << xy << data << "), H";
 		break;
 	case 0xcd:
-		ret << "SET 1, (I" << xy << '+' << data << "), L";
+		ret << "SET 1, (I" << xy << data << "), L";
 		break;
 	case 0xce:
-		ret << "SET 1, (I" << xy << '+' << data << ")";
+		ret << "SET 1, (I" << xy << data << ")";
 		break;
 	case 0xcf:
-		ret << "SET 1, (I" << xy << '+' << data << "), A";
+		ret << "SET 1, (I" << xy << data << "), A";
 		break;
 	case 0xd0:
-		ret << "SET 2, (I" << xy << '+' << data << "), B";
+		ret << "SET 2, (I" << xy << data << "), B";
 		break;
 	case 0xd1:
-		ret << "SET 2, (I" << xy << '+' << data << "), C";
+		ret << "SET 2, (I" << xy << data << "), C";
 		break;
 	case 0xd2:
-		ret << "SET 2, (I" << xy << '+' << data << "), D";
+		ret << "SET 2, (I" << xy << data << "), D";
 		break;
 	case 0xd3:
-		ret << "SET 2, (I" << xy << '+' << data << "), E";
+		ret << "SET 2, (I" << xy << data << "), E";
 		break;
 	case 0xd4:
-		ret << "SET 2, (I" << xy << '+' << data << "), H";
+		ret << "SET 2, (I" << xy << data << "), H";
 		break;
 	case 0xd5:
-		ret << "SET 2, (I" << xy << '+' << data << "), L";
+		ret << "SET 2, (I" << xy << data << "), L";
 		break;
 	case 0xd6:
-		ret << "SET 2, (I" << xy << '+' << data << ")";
+		ret << "SET 2, (I" << xy << data << ")";
 		break;
 	case 0xd7:
-		ret << "SET 2, (I" << xy << '+' << data << "), A";
+		ret << "SET 2, (I" << xy << data << "), A";
 		break;
 	case 0xd8:
-		ret << "SET 3, (I" << xy << '+' << data << "), B";
+		ret << "SET 3, (I" << xy << data << "), B";
 		break;
 	case 0xd9:
-		ret << "SET 3, (I" << xy << '+' << data << "), C";
+		ret << "SET 3, (I" << xy << data << "), C";
 		break;
 	case 0xda:
-		ret << "SET 3, (I" << xy << '+' << data << "), D";
+		ret << "SET 3, (I" << xy << data << "), D";
 		break;
 	case 0xdb:
-		ret << "SET 3, (I" << xy << '+' << data << "), E";
+		ret << "SET 3, (I" << xy << data << "), E";
 		break;
 	case 0xdc:
-		ret << "SET 3, (I" << xy << '+' << data << "), H";
+		ret << "SET 3, (I" << xy << data << "), H";
 		break;
 	case 0xdd:
-		ret << "SET 3, (I" << xy << '+' << data << "), L";
+		ret << "SET 3, (I" << xy << data << "), L";
 		break;
 	case 0xde:
-		ret << "SET 3, (I" << xy << '+' << data << ")";
+		ret << "SET 3, (I" << xy << data << ")";
 		break;
 	case 0xdf:
-		ret << "SET 3, (I" << xy << '+' << data << "), A";
+		ret << "SET 3, (I" << xy << data << "), A";
 		break;
 	case 0xe0:
-		ret << "SET 4, (I" << xy << '+' << data << "), B";
+		ret << "SET 4, (I" << xy << data << "), B";
 		break;
 	case 0xe1:
-		ret << "SET 4, (I" << xy << '+' << data << "), C";
+		ret << "SET 4, (I" << xy << data << "), C";
 		break;
 	case 0xe2:
-		ret << "SET 4, (I" << xy << '+' << data << "), D";
+		ret << "SET 4, (I" << xy << data << "), D";
 		break;
 	case 0xe3:
-		ret << "SET 4, (I" << xy << '+' << data << "), E";
+		ret << "SET 4, (I" << xy << data << "), E";
 		break;
 	case 0xe4:
-		ret << "SET 4, (I" << xy << '+' << data << "), H";
+		ret << "SET 4, (I" << xy << data << "), H";
 		break;
 	case 0xe5:
-		ret << "SET 4, (I" << xy << '+' << data << "), L";
+		ret << "SET 4, (I" << xy << data << "), L";
 		break;
 	case 0xe6:
-		ret << "SET 4, (I" << xy << '+' << data << ")";
+		ret << "SET 4, (I" << xy << data << ")";
 		break;
 	case 0xe7:
-		ret << "SET 4, (I" << xy << '+' << data << "), A";
+		ret << "SET 4, (I" << xy << data << "), A";
 		break;
 	case 0xe8:
-		ret << "SET 5, (I" << xy << '+' << data << "), B";
+		ret << "SET 5, (I" << xy << data << "), B";
 		break;
 	case 0xe9:
-		ret << "SET 5, (I" << xy << '+' << data << "), C";
+		ret << "SET 5, (I" << xy << data << "), C";
 		break;
 	case 0xea:
-		ret << "SET 5, (I" << xy << '+' << data << "), D";
+		ret << "SET 5, (I" << xy << data << "), D";
 		break;
 	case 0xeb:
-		ret << "SET 5, (I" << xy << '+' << data << "), E";
+		ret << "SET 5, (I" << xy << data << "), E";
 		break;
 	case 0xec:
-		ret << "SET 5, (I" << xy << '+' << data << "), H";
+		ret << "SET 5, (I" << xy << data << "), H";
 		break;
 	case 0xed:
-		ret << "SET 5, (I" << xy << '+' << data << "), L";
+		ret << "SET 5, (I" << xy << data << "), L";
 		break;
 	case 0xee:
-		ret << "SET 5, (I" << xy << '+' << data << ")";
+		ret << "SET 5, (I" << xy << data << ")";
 		break;
 	case 0xef:
-		ret << "SET 5, (I" << xy << '+' << data << "), A";
+		ret << "SET 5, (I" << xy << data << "), A";
 		break;
 	case 0xf0:
-		ret << "SET 6, (I" << xy << '+' << data << "), B";
+		ret << "SET 6, (I" << xy << data << "), B";
 		break;
 	case 0xf1:
-		ret << "SET 6, (I" << xy << '+' << data << "), C";
+		ret << "SET 6, (I" << xy << data << "), C";
 		break;
 	case 0xf2:
-		ret << "SET 6, (I" << xy << '+' << data << "), D";
+		ret << "SET 6, (I" << xy << data << "), D";
 		break;
 	case 0xf3:
-		ret << "SET 6, (I" << xy << '+' << data << "), E";
+		ret << "SET 6, (I" << xy << data << "), E";
 		break;
 	case 0xf4:
-		ret << "SET 6, (I" << xy << '+' << data << "), H";
+		ret << "SET 6, (I" << xy << data << "), H";
 		break;
 	case 0xf5:
-		ret << "SET 6, (I" << xy << '+' << data << "), L";
+		ret << "SET 6, (I" << xy << data << "), L";
 		break;
 	case 0xf6:
-		ret << "SET 6, (I" << xy << '+' << data << ")";
+		ret << "SET 6, (I" << xy << data << ")";
 		break;
 	case 0xf7:
-		ret << "SET 6, (I" << xy << '+' << data << "), A";
+		ret << "SET 6, (I" << xy << data << "), A";
 		break;
 	case 0xf8:
-		ret << "SET 7, (I" << xy << '+' << data << "), B";
+		ret << "SET 7, (I" << xy << data << "), B";
 		break;
 	case 0xf9:
-		ret << "SET 7, (I" << xy << '+' << data << "), C";
+		ret << "SET 7, (I" << xy << data << "), C";
 		break;
 	case 0xfa:
-		ret << "SET 7, (I" << xy << '+' << data << "), D";
+		ret << "SET 7, (I" << xy << data << "), D";
 		break;
 	case 0xfb:
-		ret << "SET 7, (I" << xy << '+' << data << "), E";
+		ret << "SET 7, (I" << xy << data << "), E";
 		break;
 	case 0xfc:
-		ret << "SET 7, (I" << xy << '+' << data << "), H";
+		ret << "SET 7, (I" << xy << data << "), H";
 		break;
 	case 0xfd:
-		ret << "SET 7, (I" << xy << '+' << data << "), L";
+		ret << "SET 7, (I" << xy << data << "), L";
 		break;
 	case 0xfe:
-		ret << "SET 7, (I" << xy << '+' << data << ")";
+		ret << "SET 7, (I" << xy << data << ")";
 		break;
 	case 0xff:
-		ret << "SET 7, (I" << xy << '+' << data << "), A";
+		ret << "SET 7, (I" << xy << data << "), A";
 		break;
 	}
 
@@ -871,13 +899,13 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "L, " << bto_string(++curr, base);
 		break;
 	case 0x34:
-		ret << "INC (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "INC (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x35:
-		ret << "DEC (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "DEC (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x36:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), ";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), ";
 		// Separate line due to pre-increment/evaluation order/clang warning
 		ret << bto_string(++curr, base);
 		break;
@@ -891,7 +919,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD B, I" << xy << 'L';
 		break;
 	case 0x46:
-		ret << "LD B, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD B, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x4c:
 		ret << "LD C, I" << xy << 'H';
@@ -900,7 +928,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD C, I" << xy << 'L';
 		break;
 	case 0x4e:
-		ret << "LD C, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD C, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x54:
 		ret << "LD D, I" << xy << 'H';
@@ -909,7 +937,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD D, I" << xy << 'L';
 		break;
 	case 0x56:
-		ret << "LD D, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD D, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x5c:
 		ret << "LD E, I" << xy << 'H';
@@ -918,7 +946,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD E, I" << xy << 'L';
 		break;
 	case 0x5e:
-		ret << "LD E, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD E, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x60:
 		ret << "LD I" << xy << "H, B";
@@ -939,7 +967,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "H, I" << xy << 'L';
 		break;
 	case 0x66:
-		ret << "LD H, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD H, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x67:
 		ret << "LD I" << xy << "H, A";
@@ -963,31 +991,31 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD I" << xy << "L, I" << xy << 'L';
 		break;
 	case 0x6e:
-		ret << "LD L, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD L, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x6f:
 		ret << "LD I" << xy << "L, A";
 		break;
 	case 0x70:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), B";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), B";
 		break;
 	case 0x71:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), C";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), C";
 		break;
 	case 0x72:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), D";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), D";
 		break;
 	case 0x73:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), E";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), E";
 		break;
 	case 0x74:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), H";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), H";
 		break;
 	case 0x75:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), L";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), L";
 		break;
 	case 0x77:
-		ret << "LD (I" << xy << '+' << bto_string(++curr, base, true) << "), A";
+		ret << "LD (I" << xy << sbto_string(++curr, base) << "), A";
 		break;
 	case 0x7c:
 		ret << "LD A, I" << xy << 'H';
@@ -996,7 +1024,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "LD A, I" << xy << 'L';
 		break;
 	case 0x7e:
-		ret << "LD A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "LD A, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x84:
 		ret << "ADD A, I" << xy << 'H';
@@ -1005,7 +1033,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADD A, I" << xy << 'L';
 		break;
 	case 0x86:
-		ret << "ADD A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "ADD A, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x8c:
 		ret << "ADC A, I" << xy << 'H';
@@ -1014,7 +1042,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC A, I" << xy << 'L';
 		break;
 	case 0x8e:
-		ret << "ADC A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "ADC A, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x94:
 		ret << "SUB I" << xy << 'H';
@@ -1023,7 +1051,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SUB I" << xy << 'L';
 		break;
 	case 0x96:
-		ret << "SUB (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "SUB (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0x9c:
 		ret << "SBC A, I" << xy << 'H';
@@ -1032,7 +1060,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC A, I" << xy << 'L';
 		break;
 	case 0x9e:
-		ret << "SBC A, (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "SBC A, (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0xa4:
 		ret << "AND I" << xy << 'H';
@@ -1041,7 +1069,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "AND I" << xy << 'L';
 		break;
 	case 0xa6:
-		ret << "AND (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "AND (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0xac:
 		ret << "XOR I" << xy << 'H';
@@ -1050,7 +1078,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "XOR I" << xy << 'L';
 		break;
 	case 0xae:
-		ret << "XOR (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "XOR (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0xb4:
 		ret << "OR I" << xy << 'H';
@@ -1059,7 +1087,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "OR I" << xy << 'L';
 		break;
 	case 0xb6:
-		ret << "OR (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "OR (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0xbc:
 		ret << "CP I" << xy << 'H';
@@ -1068,7 +1096,7 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "CP I" << xy << 'L';
 		break;
 	case 0xbe:
-		ret << "CP (I" << xy << '+' << bto_string(++curr, base, true) << ')';
+		ret << "CP (I" << xy << sbto_string(++curr, base) << ')';
 		break;
 	case 0xcb:
 		ret << dump_IX_IY_bits(++curr, xy, base);
