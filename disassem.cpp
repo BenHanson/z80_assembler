@@ -28,23 +28,22 @@ std::string sbto_string(const uint8_t* curr, const base base)
 	int8_t byte = static_cast<int8_t>(*curr);
 	std::ostringstream data;
 
-	if (base == base::hexadecimal)
+	if (!(byte & 0x80))
+		data << '+';
+	else
 	{
-		data << std::uppercase << std::hex << std::setfill('0') << std::setw(2);
+		data << '-';
+		byte *= -1;
 	}
 
 	if (base == base::decimal)
-	{
-		if (!(byte & 0x80))
-			data << '+';
-
 		data << static_cast<int>(byte);
-	}
 	else
-		data << static_cast<uint16_t>(byte);
-
-	if (base == base::hexadecimal)
+	{
+		data << std::uppercase << std::hex << std::setfill('0') << std::setw(2);
+		data << static_cast<int16_t>(byte);
 		data << 'h';
+	}
 
 	++curr;
 	return data.str();
