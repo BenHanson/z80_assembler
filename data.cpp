@@ -7,7 +7,7 @@
 
 data::token data::dollar(const std::size_t index)
 {
-	return _results.dollar(_gsm, index, _productions);
+	return _results.dollar(index, _gsm, _productions);
 }
 
 void data::push_byte()
@@ -89,7 +89,7 @@ void data::parse(const char* first, const char* second, const relative relative)
 			}
 		}
 
-		parsertl::lookup(_gsm, iter, _results, _productions);
+		parsertl::lookup(iter, _gsm, _results, _productions);
 	}
 
 	if (_results.entry.action == parsertl::action::error)
@@ -188,7 +188,7 @@ uint16_t data::parse_expr(const char* first, const char* second)
 			}
 		}
 
-		parsertl::lookup(_expr_gsm, iter, _results, _productions);
+		parsertl::lookup(iter, _expr_gsm, _results, _productions);
 	}
 
 	std::swap(results, _results);
