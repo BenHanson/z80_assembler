@@ -6,7 +6,7 @@
 void build_parser(data& d, const std::size_t flags)
 {
 	parsertl::rules grules;
-	lexertl::rules lrules(lexertl::dot_not_cr_lf | flags);
+	lexertl::rules lrules(*lexertl::regex_flags::dot_not_cr_lf | flags);
 	std::string warnings;
 
 	grules.token("A ADD ADC AF AF_PRIME AND B BC Binary BIT C CALL CCF Char CP CPD "
@@ -2663,7 +2663,7 @@ void build_parser(data& d, const std::size_t flags)
 void build_expr_parser(data& d)
 {
 	parsertl::rules grules;
-	lexertl::rules lrules(lexertl::dot_not_cr_lf | lexertl::icase);
+	lexertl::rules lrules(*lexertl::regex_flags::dot_not_cr_lf | *lexertl::regex_flags::icase);
 	std::string warnings;
 
 	grules.token("Binary Char Hex Integer Name UMINUS");
