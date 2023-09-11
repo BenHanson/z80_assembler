@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O -std=c++17 -Wall
+CXXFLAGS = -O -std=c++17 -Wall -I ../lexertl14/include
 
 LDFLAGS = -O
 
