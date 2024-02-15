@@ -1,9 +1,10 @@
-#include "data.h"
-//#include "../parsertl14/include/parsertl/debug.hpp"
-#include "parsers.h"
-#include "../parsertl14/include/parsertl/generator.hpp"
+#include "data.hpp"
+//#include <parsertl/debug.hpp>
+#include "parsers.hpp"
+#include <parsertl/generator.hpp>
+#include "z80_error.hpp"
 
-void build_parser(data& d, const std::size_t flags)
+static void build_parser(data& d, const std::size_t flags)
 {
 	parsertl::rules grules;
 	lexertl::rules lrules(*lexertl::regex_flags::dot_not_cr_lf | flags);
@@ -15,7 +16,7 @@ void build_parser(data& d, const std::size_t flags)
 		"IY IYh IYl JP JR L LD LDD LDDR LDI LDIR M Name NC NEG NL NOP NZ OR "
 		"ORG OTDR OTIR OUT OUTD OUTI P PE PO PUSH POP R RES RET RETI RETN "
 		"RL RLA RLC RLCA RLD RR RRA RRC RRCA RRD RST SBC SCF SET SLA SLL SP "
-		"SRA SRL String SUB UMINUS XOR Z");
+		"SRA SRL String SUB XOR Z");
 	grules.left("'|' '&'");
 	grules.left("'+' '-'");
 	grules.left("'*' '/'");
@@ -34,7 +35,7 @@ void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("line", "ORG integer")] = [](data& data)
 	{
 		if (data._program._org_set)
-			throw std::runtime_error("ORG can only be set once");
+			throw z80_error("ORG can only be set once");
 
 		data._program._org = data._integer;
 		data._program._org_set = true;
@@ -55,11 +56,11 @@ void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("label", "Name")] = [](data& data)
 	{
 		std::string name = data.dollar(0).str();
-		auto iter = data._label.find(name);
 
-		if (iter != data._label.end())
+		if (auto iter = data._label.find(name);
+			iter != data._label.end())
 		{
-			throw std::runtime_error(name + " already exists");
+			throw z80_error(name + " already exists");
 		}
 
 		data._label[name] = static_cast<uint16_t>(data._program._memory.size());
@@ -121,12 +122,17 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("db_list", "String")] = [](data& data)
 	{
-		auto t = data.dollar(0);
+		std::string str = data.dollar(0).substr(1, 1);
+		std::size_t idx = str.find('\\');
 
-		++t.first;
-		--t.second;
+		while (idx != std::string::npos)
+		{
+			str.erase(idx, 1);
+			idx = str.find('\\', idx + 1);
+		}
 
-		for (const char* iter = t.first; iter != t.second; ++iter)
+		for (const char* iter = str.c_str(), *end = iter + str.size();
+			iter != end; ++iter)
 		{
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
@@ -138,12 +144,17 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("db_list", "db_list ',' String")] = [](data& data)
 	{
-		auto t = data.dollar(2);
+		std::string str = data.dollar(2).substr(1, 1);
+		std::size_t idx = str.find('\\');
 
-		++t.first;
-		--t.second;
+		while (idx != std::string::npos)
+		{
+			str.erase(idx, 1);
+			idx = str.find('\\', idx + 1);
+		}
 
-		for (const char* iter = t.first; iter != t.second; ++iter)
+		for (const char* iter = str.c_str(), *end = iter + str.size();
+			iter != end; ++iter)
 		{
 			data.push_byte(static_cast<uint8_t>(*iter));
 		}
@@ -161,33 +172,33 @@ void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("opcode", R"(LD r ',' r2)")] = [](data& data)
 	{
 		// Made local var to prevent VC++ warning
-		const uint8_t by = 0b01000000 | data._r << 3 | data._r2;
+		const uint8_t by = (0b01000000 | data._r << 3 | data._r2) & 0xff;
 
 		data.push_byte(by);
 	};
 	d._actions[grules.push("opcode", R"(LD r ',' IXh)")] = [](data& data)
 	{
 		data.push_byte(0xDD);
-		data.push_byte(0b01000100 | data._r << 3);
+		data.push_byte((0b01000100 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", R"(LD r ',' IXl)")] = [](data& data)
 	{
 		data.push_byte(0xDD);
-		data.push_byte(0b01000101 | data._r << 3);
+		data.push_byte((0b01000101 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", R"(LD r ',' IYh)")] = [](data& data)
 	{
 		data.push_byte(0xFD);
-		data.push_byte(0b01000100 | data._r << 3);
+		data.push_byte((0b01000100 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", R"(LD r ',' IYl)")] = [](data& data)
 	{
 		data.push_byte(0xFD);
-		data.push_byte(0b01000101 | data._r << 3);
+		data.push_byte((0b01000101 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "LD r ',' expr")] = [](data& data)
 	{
-		data.push_byte(0b00000110 | data._r << 3);
+		data.push_byte((0b00000110 | data._r << 3) & 0xff);
 		data.push_byte(0);
 		data.bexpr(3);
 	};
@@ -221,19 +232,19 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD r ',' '(' HL ')'")] = [](data& data)
 	{
-		data.push_byte(0b01000110 | data._r << 3);
+		data.push_byte((0b01000110 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "LD r ',' '(' IX plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
-		data.push_byte(0b01000110 | data._r << 3);
+		data.push_byte((0b01000110 | data._r << 3) & 0xff);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 	};
 	d._actions[grules.push("opcode", "LD r ',' '(' IY plus_minus expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
-		data.push_byte(0b01000110 | data._r << 3);
+		data.push_byte((0b01000110 | data._r << 3) & 0xff);
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 	};
@@ -287,7 +298,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0x0A);
@@ -300,7 +311,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0x1A);
@@ -313,7 +324,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0x3A);
@@ -342,7 +353,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0xED);
@@ -356,7 +367,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0xED);
@@ -374,7 +385,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "LD dd ',' expr")] = [](data& data)
 	{
-		data.push_byte(0b00000001 | data._dd << 4);
+		data.push_byte((0b00000001 | data._dd << 4) & 0xff);
 		data.push_word(0);
 		data.wexpr(3);
 	};
@@ -392,7 +403,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register H not allowed");
+			throw z80_error(str + ": Register H not allowed");
 		}
 
 		if (data._r == 0b101)
@@ -400,7 +411,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register L not allowed");
+			throw z80_error(str + ": Register L not allowed");
 		}
 
 		data.push_byte(0xDD);
@@ -423,7 +434,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register H not allowed");
+			throw z80_error(str + ": Register H not allowed");
 		}
 
 		if (data._r == 0b101)
@@ -431,7 +442,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register L not allowed");
+			throw z80_error(str + ": Register L not allowed");
 		}
 
 		data.push_byte(0xDD);
@@ -461,7 +472,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register H not allowed");
+			throw z80_error(str + ": Register H not allowed");
 		}
 
 		if (data._r == 0b101)
@@ -469,7 +480,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register L not allowed");
+			throw z80_error(str + ": Register L not allowed");
 		}
 
 		data.push_byte(0xFD);
@@ -492,7 +503,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register H not allowed");
+			throw z80_error(str + ": Register H not allowed");
 		}
 
 		if (data._r == 0b101)
@@ -500,7 +511,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Register L not allowed");
+			throw z80_error(str + ": Register L not allowed");
 		}
 
 		data.push_byte(0xFD);
@@ -526,7 +537,7 @@ void build_parser(data& d, const std::size_t flags)
 		else
 		{
 			data.push_byte(0xED);
-			data.push_byte(0b01001011 | data._dd << 4);
+			data.push_byte((0b01001011 | data._dd << 4) & 0xff);
 		}
 
 		data.push_word(0);
@@ -556,7 +567,7 @@ void build_parser(data& d, const std::size_t flags)
 		else
 		{
 			data.push_byte(0xED);
-			data.push_byte(0b01000011 | data._dd << 4);
+			data.push_byte((0b01000011 | data._dd << 4) & 0xff);
 		}
 
 		data.push_word(0);
@@ -584,7 +595,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Only register SP is valid");
+			throw z80_error(str + ": Only register SP is valid");
 		}
 
 		data.push_byte(0xF9);
@@ -597,7 +608,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Only register SP is valid");
+			throw z80_error(str + ": Only register SP is valid");
 		}
 
 		data.push_byte(0xDD);
@@ -611,7 +622,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw std::runtime_error(str + ": Only register SP is valid");
+			throw z80_error(str + ": Only register SP is valid");
 		}
 
 		data.push_byte(0xFD);
@@ -619,7 +630,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "PUSH qq")] = [](data& data)
 	{
-		data.push_byte(0b11000101 | data._qq << 4);
+		data.push_byte((0b11000101 | data._qq << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "PUSH IX")] = [](data& data)
 	{
@@ -633,7 +644,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "POP qq")] = [](data& data)
 	{
-		data.push_byte(0b11000001 | data._qq << 4);
+		data.push_byte((0b11000001 | data._qq << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "POP IX")] = [](data& data)
 	{
@@ -1097,7 +1108,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "INC r")] = [](data& data)
 	{
-		data.push_byte(0b00000100 | data._r << 3);
+		data.push_byte((0b00000100 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "INC IXh")] = [](data& data)
 	{
@@ -1139,7 +1150,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "DEC r")] = [](data& data)
 	{
-		data.push_byte(0b00000101 | data._r << 3);
+		data.push_byte((0b00000101 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "DEC IXh")] = [](data& data)
 	{
@@ -1242,31 +1253,31 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "ADD HL ',' dd")] = [](data& data)
 	{
-		data.push_byte(0b00001001 | data._dd << 4);
+		data.push_byte((0b00001001 | data._dd << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "ADC HL ',' dd")] = [](data& data)
 	{
 		data.push_byte(0xED);
-		data.push_byte(0b01001010 | data._dd << 4);
+		data.push_byte((0b01001010 | data._dd << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "SBC HL ',' dd")] = [](data& data)
 	{
 		data.push_byte(0xED);
-		data.push_byte(0b01000010 | data._dd << 4);
+		data.push_byte((0b01000010 | data._dd << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "ADD IX ',' pp")] = [](data& data)
 	{
 		data.push_byte(0xDD);
-		data.push_byte(0b00001001 | data._pp << 4);
+		data.push_byte((0b00001001 | data._pp << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "ADD IY ',' rr")] = [](data& data)
 	{
 		data.push_byte(0xFD);
-		data.push_byte(0b00001001 | data._rr << 4);
+		data.push_byte((0b00001001 | data._rr << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "INC dd")] = [](data& data)
 	{
-		data.push_byte(0b00000011 | data._dd << 4);
+		data.push_byte((0b00000011 | data._dd << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "INC IX")] = [](data& data)
 	{
@@ -1280,7 +1291,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "DEC dd")] = [](data& data)
 	{
-		data.push_byte(0b00001011 | data._dd << 4);
+		data.push_byte((0b00001011 | data._dd << 4) & 0xff);
 	};
 	d._actions[grules.push("opcode", "DEC IX")] = [](data& data)
 	{
@@ -1668,7 +1679,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1726,7 +1737,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1767,7 +1778,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b01000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1785,7 +1796,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1844,7 +1855,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1886,7 +1897,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.bexpr(6, data._plus_minus);
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b11000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -1904,7 +1915,7 @@ void build_parser(data& d, const std::size_t flags)
 		}
 
 		// Made local var to prevent VC++ warning
-		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(0xCB);
 		data.push_byte(by);
@@ -1962,7 +1973,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -2003,7 +2014,7 @@ void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0);
 		data.bexpr(6, data._plus_minus);
 
-		const uint8_t by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
+		const auto by = static_cast<uint8_t>(0b10000000 | bit << 3 | data._r);
 
 		data.push_byte(by);
 	};
@@ -2015,7 +2026,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "JP cc ',' full_expr")] = [](data& data)
 	{
-		data.push_byte(0b11000010 | data._cc << 3);
+		data.push_byte((0b11000010 | data._cc << 3) & 0xff);
 		data.push_word(0);
 		data.wexpr(3);
 	};
@@ -2027,7 +2038,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "JR c ',' full_expr")] = [](data& data)
 	{
-		data.push_byte(0b00100000 | data._c << 3);
+		data.push_byte((0b00100000 | data._c << 3) & 0xff);
 		data.push_byte(0);
 		data.rel_label(3);
 	};
@@ -2059,7 +2070,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "CALL cc ',' full_expr")] = [](data& data)
 	{
-		data.push_byte(0b11000100 | data._cc << 3);
+		data.push_byte((0b11000100 | data._cc << 3) & 0xff);
 		data.push_word(0);
 		data.wexpr(3);
 	};
@@ -2069,7 +2080,7 @@ void build_parser(data& d, const std::size_t flags)
 	};
 	d._actions[grules.push("opcode", "RET cc")] = [](data& data)
 	{
-		data.push_byte(0b11000000 | data._cc << 3);
+		data.push_byte((0b11000000 | data._cc << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "RETI")] = [](data& data)
 	{
@@ -2116,7 +2127,7 @@ void build_parser(data& d, const std::size_t flags)
 			throw std::out_of_range("Invalid value for RST");
 		}
 
-		data.push_byte(0b11000111 | by << 3);
+		data.push_byte((0b11000111 | by << 3) & 0xff);
 	};
 	// Only A register is legal
 	d._actions[grules.push("opcode", "IN r ',' '(' expr ')'")] = [](data& data)
@@ -2126,7 +2137,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw std::runtime_error(str + ": Only register A is valid");
+			throw z80_error(str + ": Only register A is valid");
 		}
 
 		data.push_byte(0xDB);
@@ -2146,7 +2157,7 @@ void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("opcode", "IN r ',' '(' C ')'")] = [](data& data)
 	{
 		data.push_byte(0xED);
-		data.push_byte(0b01000000 | data._r << 3);
+		data.push_byte((0b01000000 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "INI")] = [](data& data)
 	{
@@ -2181,7 +2192,7 @@ void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw std::runtime_error(str + ": Only 0 is valid");
+			throw z80_error(str + ": Only 0 is valid");
 		}
 
 		data.push_byte(0xED);
@@ -2190,7 +2201,7 @@ void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("opcode", "OUT '(' C ')' ',' r")] = [](data& data)
 	{
 		data.push_byte(0xED);
-		data.push_byte(0b01000001 | data._r << 3);
+		data.push_byte((0b01000001 | data._r << 3) & 0xff);
 	};
 	d._actions[grules.push("opcode", "OUTI")] = [](data& data)
 	{
@@ -2517,6 +2528,8 @@ void build_parser(data& d, const std::size_t flags)
 			case '?':
 				data._integer = '?';
 				break;
+			default:
+				break;
 			}
 		}
 		else
@@ -2535,7 +2548,7 @@ void build_parser(data& d, const std::size_t flags)
 	parsertl::generator::build(grules, d._gsm, &warnings);
 
 	if (!warnings.empty())
-		throw std::runtime_error(warnings);
+		throw z80_error(warnings);
 
 	lrules.push("[(]", grules.token_id("'('"));
 	lrules.push("[)]", grules.token_id("')'"));
@@ -2653,20 +2666,20 @@ void build_parser(data& d, const std::size_t flags)
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+[hH]", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
-	lrules.push(R"('[^'\r\n]{2,}'|\"[^"\r\n]+\")", grules.token_id("String"));
+	lrules.push(R"('[^'\r\n]{2,}'|\"([^"\r\n]|\\.)*\")", grules.token_id("String"));
 	lrules.push("[A-Z_a-z][0-9A-Z_a-z]*", grules.token_id("Name"));
-	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
+	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lexertl::rules::skip());
 	lrules.push("\r?\n", grules.token_id("NL"));
 	lexertl::generator::build(lrules, d._lsm);
 }
 
-void build_expr_parser(data& d)
+static void build_expr_parser(data& d)
 {
 	parsertl::rules grules;
 	lexertl::rules lrules(*lexertl::regex_flags::dot_not_cr_lf | *lexertl::regex_flags::icase);
 	std::string warnings;
 
-	grules.token("Binary Char Hex Integer Name UMINUS");
+	grules.token("Binary Char Hex Integer Name");
 	grules.left("'|' '&'");
 	grules.left("'+' '-'");
 	grules.left("'*' '/'");
@@ -2722,9 +2735,9 @@ void build_expr_parser(data& d)
 	d._expr_actions[grules.push("expr", "Name")] = [](data& data)
 	{
 		const auto str = data._results.dollar(0, data._expr_gsm, data._productions).str();
-		auto lab = data._label.find(str);
 
-		if (lab != data._label.end())
+		if (auto lab = data._label.find(str);
+			lab != data._label.end())
 		{
 			data._acc.push(data._program._org + lab->second);
 			return;
@@ -2733,7 +2746,7 @@ void build_expr_parser(data& d)
 		auto equ = data._equ.find(str);
 
 		if (equ == data._equ.end())
-			throw std::runtime_error("Unknown label " + str);
+			throw z80_error("Unknown label " + str);
 
 		data._acc.push(equ->second);
 	};
@@ -2765,9 +2778,9 @@ void build_expr_parser(data& d)
 	d._expr_actions[grules.push("integer", "Char")] = [](data& data)
 	{
 		const auto& t = data._results.dollar(0, data._expr_gsm, data._productions);
-		const char* first = t.first + 1;
 
-		if (*first == '\\')
+		if (const char* first = t.first + 1;
+			*first == '\\')
 		{
 			++first;
 
@@ -2845,6 +2858,8 @@ void build_expr_parser(data& d)
 			case '?':
 				data._integer = '?';
 				break;
+			default:
+				break;
 			}
 		}
 		else
@@ -2864,7 +2879,7 @@ void build_expr_parser(data& d)
 	parsertl::generator::build(grules, d._expr_gsm, &warnings);
 
 	if (!warnings.empty())
-		throw std::runtime_error(warnings);
+		throw z80_error(warnings);
 
 	lrules.push("[|]", grules.token_id("'|'"));
 	lrules.push("&", grules.token_id("'&'"));
@@ -2879,7 +2894,7 @@ void build_expr_parser(data& d)
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+h", grules.token_id("Hex"));
 	lrules.push(R"(\d+)", grules.token_id("Integer"));
 	lrules.push("[_A-Z][0-9_A-Z]*", grules.token_id("Name"));
-	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lrules.skip());
+	lrules.push("[ \t]+|;.*|[/][*](?s:.)*?[*][/]", lexertl::rules::skip());
 	lexertl::generator::build(lrules, d._expr_lsm);
 }
 

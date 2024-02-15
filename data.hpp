@@ -1,9 +1,9 @@
 #pragma once
 
-#include "enums.h"
-#include "../lexertl14/include/lexertl/iterator.hpp"
-#include "../parsertl14/include/parsertl/token.hpp"
-#include "../parsertl14/include/parsertl/match_results.hpp"
+#include "enums.hpp"
+#include <lexertl/iterator.hpp>
+#include <parsertl/token.hpp>
+#include <parsertl/match_results.hpp>
 
 struct program
 {
@@ -69,7 +69,7 @@ struct data
 	std::stack<int> _acc;
 	program _program;
 
-	token dollar(const std::size_t index);
+	token dollar(const std::size_t index) const;
 	void push_byte();
 	void push_byte(const uint8_t by);
 	void push_word(const uint16_t w);

@@ -1,9 +1,11 @@
-#include "disassem.h"
+#include "disassem.hpp"
+#include <format>
 #include <iostream>
-#include "../lexertl14/include/lexertl/memory_file.hpp"
-#include "parsers.h"
+#include <lexertl/memory_file.hpp>
+#include "parsers.hpp"
+#include "z80_error.hpp"
 
-void save(program& program, const char* src, const char* dest)
+static void save(program& program, const char* src, const char* dest)
 {
 	lexertl::memory_file mf(src);
 
@@ -28,16 +30,16 @@ void save(program& program, const char* src, const char* dest)
 		}
 		else
 		{
-			throw std::runtime_error("Unable to open " + std::string(dest));
+			throw z80_error(std::format("Unable to open {}", dest));
 		}
 	}
 	else
 	{
-		throw std::runtime_error("Unable to open " + std::string(src));
+		throw z80_error(std::format("Unable to open {}", src));
 	}
 }
 
-const char* usage()
+static const char* usage()
 {
 	return "USAGE: z80_assembler <pathname> "
 		"[<source .sna> <dest .sna>] [-(dec|hex)] [-(jr_off|jr_addr)]\n";
@@ -76,17 +78,17 @@ int main(int argc, const char* argv[])
 		}
 
 		if (!mf.data())
-			throw std::runtime_error("Unable to open " + std::string(argv[1]));
+			throw z80_error(std::format("Unable to open {}", argv[1]));
 
 		if (!(pathnames.empty() || pathnames.size() == 2))
-			throw std::runtime_error(usage());
+			throw z80_error(usage());
 
 		build_parsers(data);
 		data.parse(mf.data(), mf.data() + mf.size(), relative);
 		mf.close();
 
 		if (data._program._org + data._program._memory.size() - 1 > 65535)
-			throw std::runtime_error("Code exceeds memory limit (65535)");
+			throw z80_error("Code exceeds memory limit (65535)");
 
 		if (pathnames.size() == 2)
 			save(data._program, argv[2], argv[3]);

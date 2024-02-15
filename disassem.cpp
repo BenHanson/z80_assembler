@@ -1,4 +1,4 @@
-#include "disassem.h"
+#include "disassem.hpp"
 #include <iomanip>
 #include <sstream>
 
@@ -25,7 +25,7 @@ std::string bto_string(const uint8_t* curr, const base base, const bool is_signe
 
 std::string sbto_string(const uint8_t* curr, const base base)
 {
-	int8_t byte = static_cast<int8_t>(*curr);
+	auto byte = static_cast<int8_t>(*curr);
 	std::ostringstream data;
 
 	if (!(byte & 0x80))
@@ -1921,7 +1921,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC HL, BC";
 		break;
 	case 0x43:
-		ret << "LD (" << wto_string(++curr, base) << "), BC";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), BC";
 		break;
 	case 0x44:
 		ret << "NEG";
@@ -1945,7 +1946,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC HL, BC";
 		break;
 	case 0x4b:
-		ret << "LD BC, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD BC, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x4c:
 		ret << "NEG";
@@ -1969,7 +1971,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC HL, DE";
 		break;
 	case 0x53:
-		ret << "LD (" << wto_string(++curr, base) << "), DE";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), DE";
 		break;
 	case 0x54:
 		ret << "NEG";
@@ -1993,7 +1996,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC HL, DE";
 		break;
 	case 0x5b:
-		ret << "LD DE, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD DE, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x5c:
 		ret << "NEG";
@@ -2017,7 +2021,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC HL, HL";
 		break;
 	case 0x63:
-		ret << "LD (" << wto_string(++curr, base) << "), HL";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), HL";
 		break;
 	case 0x64:
 		ret << "NEG";
@@ -2041,7 +2046,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC HL, HL";
 		break;
 	case 0x6b:
-		ret << "LD HL, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD HL, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x6c:
 		ret << "NEG";
@@ -2065,7 +2071,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "SBC HL, SP";
 		break;
 	case 0x73:
-		ret << "LD (" << wto_string(++curr, base) << "), SP";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), SP";
 		break;
 	case 0x74:
 		ret << "NEG";
@@ -2086,7 +2093,8 @@ std::string wto_string(const uint8_t*& curr, const base base)
 		ret << "ADC HL, SP";
 		break;
 	case 0x7b:
-		ret << "LD SP, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD SP, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x7c:
 		ret << "NEG";
@@ -2170,7 +2178,7 @@ uint16_t rel_addr(const program& program, const uint8_t* curr)
 		(curr + 2 + static_cast<int8_t>(*(curr + 1)) - &program._memory.front());
 }
 
-std::string fetch_opcode(const uint8_t*& curr, const program& program,
+static std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	const base base, const relative relative)
 {
 	std::ostringstream ret;
@@ -2184,7 +2192,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "NOP";
 		break;
 	case 0x01:
-		ret << "LD BC, " << wto_string(++curr, base);
+		++curr;
+		ret << "LD BC, " << wto_string(curr, base);
 		break;
 	case 0x02:
 		ret << "LD (BC), A";
@@ -2199,7 +2208,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC B";
 		break;
 	case 0x06:
-		ret << "LD B, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD B, " << bto_string(curr, base);
 		break;
 	case 0x07:
 		ret << "RLCA";
@@ -2223,7 +2233,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC C";
 		break;
 	case 0x0e:
-		ret << "LD C, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD C, " << bto_string(curr, base);
 		break;
 	case 0x0f:
 		ret << "RRCA";
@@ -2232,14 +2243,19 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DJNZ ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
-				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+				const uint8_t* ptr = std::bit_cast<uint8_t*>(&addr);
 
 				ret << wto_string(ptr, base);
 			}
@@ -2249,7 +2265,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 		break;
 	case 0x11:
-		ret << "LD DE, " << wto_string(++curr, base);
+		++curr;
+		ret << "LD DE, " << wto_string(curr, base);
 		break;
 	case 0x12:
 		ret << "LD (DE), A";
@@ -2273,14 +2290,19 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JR ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
-				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+				const uint8_t* ptr = std::bit_cast<uint8_t*>(&addr);
 
 				ret << wto_string(ptr, base);
 			}
@@ -2305,7 +2327,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC E";
 		break;
 	case 0x1e:
-		ret << "LD E, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD E, " << bto_string(curr, base);
 		break;
 	case 0x1f:
 		ret << "RRA";
@@ -2314,10 +2337,15 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JR NZ, ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
@@ -2331,10 +2359,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 		break;
 	case 0x21:
-		ret << "LD HL, " << wto_string(++curr, base);
+		++curr;
+		ret << "LD HL, " << wto_string(curr, base);
 		break;
 	case 0x22:
-		ret << "LD (" << wto_string(++curr, base) << "), HL";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), HL";
 		break;
 	case 0x23:
 		ret << "INC HL";
@@ -2346,7 +2376,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC H";
 		break;
 	case 0x26:
-		ret << "LD H, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD H, " << bto_string(curr, base);
 		break;
 	case 0x27:
 		ret << "DAA";
@@ -2355,14 +2386,19 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JR Z, ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
-				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+				const uint8_t* ptr = std::bit_cast<uint8_t*>(&addr);
 
 				ret << wto_string(ptr, base);
 			}
@@ -2375,7 +2411,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "ADD HL, HL";
 		break;
 	case 0x2a:
-		ret << "LD HL, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD HL, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x2b:
 		ret << "DEC HL";
@@ -2387,7 +2424,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC L";
 		break;
 	case 0x2e:
-		ret << "LD L, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD L, " << bto_string(curr, base);
 		break;
 	case 0x2f:
 		ret << "CPL";
@@ -2396,14 +2434,19 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JR NC, ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
-				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+				const uint8_t* ptr = std::bit_cast<uint8_t*>(&addr);
 
 				ret << wto_string(ptr, base);
 			}
@@ -2413,10 +2456,12 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 
 		break;
 	case 0x31:
-		ret << "LD SP, " << wto_string(++curr, base);
+		++curr;
+		ret << "LD SP, " << wto_string(curr, base);
 		break;
 	case 0x32:
-		ret << "LD (" << wto_string(++curr, base) << "), A";
+		++curr;
+		ret << "LD (" << wto_string(curr, base) << "), A";
 		break;
 	case 0x33:
 		ret << "INC SP";
@@ -2428,7 +2473,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC (HL)";
 		break;
 	case 0x36:
-		ret << "LD (HL), " << bto_string(++curr, base);
+		++curr;
+		ret << "LD (HL), " << bto_string(curr, base);
 		break;
 	case 0x37:
 		ret << "SCF";
@@ -2437,14 +2483,19 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JR C, ";
 
 		if (relative == relative::offset)
-			ret << bto_string(++curr, base, true);
+		{
+			++curr;
+			ret << bto_string(curr, base, true);
+		}
 		else
 		{
-			uint16_t addr = rel_addr(program, curr++);
+			uint16_t addr = rel_addr(program, curr);
+
+			++curr;
 
 			if (base == base::hexadecimal)
 			{
-				const uint8_t* ptr = reinterpret_cast<uint8_t*>(&addr);
+				const uint8_t* ptr = std::bit_cast<uint8_t*>(&addr);
 
 				ret << wto_string(ptr, base);
 			}
@@ -2457,7 +2508,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "ADD HL, SP";
 		break;
 	case 0x3a:
-		ret << "LD A, (" << wto_string(++curr, base) << ')';
+		++curr;
+		ret << "LD A, (" << wto_string(curr, base) << ')';
 		break;
 	case 0x3b:
 		ret << "DEC SP";
@@ -2469,7 +2521,8 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "DEC A";
 		break;
 	case 0x3e:
-		ret << "LD A, " << bto_string(++curr, base);
+		++curr;
+		ret << "LD A, " << bto_string(curr, base);
 		break;
 	case 0x3f:
 		ret << "CCF";
@@ -2865,19 +2918,23 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "POP BC";
 		break;
 	case 0xc2:
-		ret << "JP NZ, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP NZ, " << wto_string(curr, base);
 		break;
 	case 0xc3:
-		ret << "JP " << wto_string(++curr, base);
+		++curr;
+		ret << "JP " << wto_string(curr, base);
 		break;
 	case 0xc4:
-		ret << "CALL NZ, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL NZ, " << wto_string(curr, base);
 		break;
 	case 0xc5:
 		ret << "PUSH BC";
 		break;
 	case 0xc6:
-		ret << "ADD A, " << bto_string(++curr, base);
+		++curr;
+		ret << "ADD A, " << bto_string(curr, base);
 		break;
 	case 0xc7:
 	{
@@ -2893,19 +2950,24 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "RET";
 		break;
 	case 0xca:
-		ret << "JP Z, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP Z, " << wto_string(curr, base);
 		break;
 	case 0xcb:
-		ret << dump_bits(++curr);
+		++curr;
+		ret << dump_bits(curr);
 		break;
 	case 0xcc:
-		ret << "CALL Z, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL Z, " << wto_string(curr, base);
 		break;
 	case 0xcd:
-		ret << "CALL " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL " << wto_string(curr, base);
 		break;
 	case 0xce:
-		ret << "ADC A, " << bto_string(++curr, base);
+		++curr;
+		ret << "ADC A, " << bto_string(curr, base);
 		break;
 	case 0xcf:
 	{
@@ -2921,19 +2983,23 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "POP DE";
 		break;
 	case 0xd2:
-		ret << "JP NC, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP NC, " << wto_string(curr, base);
 		break;
 	case 0xd3:
-		ret << "OUT (" << bto_string(++curr, base) << "), A";
+		++curr;
+		ret << "OUT (" << bto_string(curr, base) << "), A";
 		break;
 	case 0xd4:
-		ret << "CALL NC, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL NC, " << wto_string(curr, base);
 		break;
 	case 0xd5:
 		ret << "PUSH DE";
 		break;
 	case 0xd6:
-		ret << "SUB " << bto_string(++curr, base);
+		++curr;
+		ret << "SUB " << bto_string(curr, base);
 		break;
 	case 0xd7:
 	{
@@ -2949,19 +3015,24 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "EXX";
 		break;
 	case 0xda:
-		ret << "JP C, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP C, " << wto_string(curr, base);
 		break;
 	case 0xdb:
-		ret << "IN A, (" << bto_string(++curr, base) << ')';
+		++curr;
+		ret << "IN A, (" << bto_string(curr, base) << ')';
 		break;
 	case 0xdc:
-		ret << "CALL C, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL C, " << wto_string(curr, base);
 		break;
 	case 0xdd:
-		ret << dump_IX_IY(++curr, 'X', base);
+		++curr;
+		ret << dump_IX_IY(curr, 'X', base);
 		break;
 	case 0xde:
-		ret << "SBC A, " << bto_string(++curr, base);
+		++curr;
+		ret << "SBC A, " << bto_string(curr, base);
 		break;
 	case 0xdf:
 	{
@@ -2977,19 +3048,22 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "POP HL";
 		break;
 	case 0xe2:
-		ret << "JP PO, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP PO, " << wto_string(curr, base);
 		break;
 	case 0xe3:
 		ret << "EX (SP), HL";
 		break;
 	case 0xe4:
-		ret << "CALL PO, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL PO, " << wto_string(curr, base);
 		break;
 	case 0xe5:
 		ret << "PUSH HL";
 		break;
 	case 0xe6:
-		ret << "AND " << bto_string(++curr, base);
+		++curr;
+		ret << "AND " << bto_string(curr, base);
 		break;
 	case 0xe7:
 	{
@@ -3005,19 +3079,23 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "JP (HL)";
 		break;
 	case 0xea:
-		ret << "JP PE, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP PE, " << wto_string(curr, base);
 		break;
 	case 0xeb:
 		ret << "EX DE, HL";
 		break;
 	case 0xec:
-		ret << "CALL PE, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL PE, " << wto_string(curr, base);
 		break;
 	case 0xed:
-		ret << dump_ext(++curr, base);
+		++curr;
+		ret << dump_ext(curr, base);
 		break;
 	case 0xee:
-		ret << "XOR " << bto_string(++curr, base);
+		++curr;
+		ret << "XOR " << bto_string(curr, base);
 		break;
 	case 0xef:
 	{
@@ -3033,19 +3111,22 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "POP AF";
 		break;
 	case 0xf2:
-		ret << "JP P, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP P, " << wto_string(curr, base);
 		break;
 	case 0xf3:
 		ret << "DI";
 		break;
 	case 0xf4:
-		ret << "CALL P, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL P, " << wto_string(curr, base);
 		break;
 	case 0xf5:
 		ret << "PUSH AF";
 		break;
 	case 0xf6:
-		ret << "OR " << bto_string(++curr, base);
+		++curr;
+		ret << "OR " << bto_string(curr, base);
 		break;
 	case 0xf7:
 	{
@@ -3061,19 +3142,23 @@ std::string fetch_opcode(const uint8_t*& curr, const program& program,
 		ret << "LD SP, HL";
 		break;
 	case 0xfa:
-		ret << "JP M, " << wto_string(++curr, base);
+		++curr;
+		ret << "JP M, " << wto_string(curr, base);
 		break;
 	case 0xfb:
 		ret << "EI";
 		break;
 	case 0xfc:
-		ret << "CALL M, " << wto_string(++curr, base);
+		++curr;
+		ret << "CALL M, " << wto_string(curr, base);
 		break;
 	case 0xfd:
-		ret << dump_IX_IY(++curr, 'Y', base);
+		++curr;
+		ret << dump_IX_IY(curr, 'Y', base);
 		break;
 	case 0xfe:
-		ret << "CP " << bto_string(++curr, base);
+		++curr;
+		ret << "CP " << bto_string(curr, base);
 		break;
 	case 0xff:
 	{
@@ -3099,7 +3184,6 @@ void dump(const program& program, const base base, const relative relative)
 
 	while (first < second)
 	{
-		bool code = true;
 		const uint8_t* curr = first;
 		std::size_t index = first - &program._memory.front();
 		std::ostringstream ss;
@@ -3112,6 +3196,9 @@ void dump(const program& program, const base base, const relative relative)
 		{
 			switch (iter->_type)
 			{
+			case program::block::type::code:
+				line = fetch_opcode(first, program, base, relative);
+				break;
 			case program::block::type::ds:
 			{
 				const std::size_t num = iter->_end - index;
@@ -3136,7 +3223,6 @@ void dump(const program& program, const base base, const relative relative)
 					line += std::to_string(num);
 
 				first += num;
-				code = false;
 				break;
 			}
 			case program::block::type::db:
@@ -3148,7 +3234,6 @@ void dump(const program& program, const base base, const relative relative)
 					line += ", " + bto_string(first, base);
 				}
 
-				code = false;
 				break;
 			case program::block::type::dw:
 				line = "DW " + wto_string(first, base);
@@ -3161,16 +3246,10 @@ void dump(const program& program, const base base, const relative relative)
 					++first;
 				}
 
-				code = false;
 				break;
 			default:
 				break;
 			}
-		}
-
-		if (code)
-		{
-			line = fetch_opcode(first, program, base, relative);
 		}
 
 		offset = first - curr;

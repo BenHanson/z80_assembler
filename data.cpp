@@ -1,11 +1,13 @@
 #include <algorithm>
-#include "data.h"
-#include "../parsertl14/include/parsertl/lookup.hpp"
+#include "data.hpp"
+#include <format>
+#include <parsertl/lookup.hpp>
 #include <stdexcept>
 #include <sstream>
 #include <string>
+#include "z80_error.hpp"
 
-data::token data::dollar(const std::size_t index)
+data::token data::dollar(const std::size_t index) const
 {
 	return _results.dollar(index, _gsm, _productions);
 }
@@ -13,7 +15,7 @@ data::token data::dollar(const std::size_t index)
 void data::push_byte()
 {
 	if (_integer > 255)
-		throw std::out_of_range("Value " + std::to_string(_integer) + " is greater than 255");
+		throw std::out_of_range(std::format("Value {} is greater than 255", _integer));
 
 	_program._memory.push_back(_integer & 0xff);
 }
@@ -80,11 +82,9 @@ void data::parse(const char* first, const char* second, const relative relative)
 				}
 				catch (const std::exception& e)
 				{
-					std::ostringstream ss;
-
-					ss << e.what() << " at line " <<
-						std::count(first, iter->first, '\n') + 1;
-					throw std::runtime_error(ss.str());
+					throw z80_error(std::format("{} at line {}",
+						e.what(),
+						std::count(first, iter->first, '\n') + 1));
 				}
 			}
 		}
@@ -97,69 +97,66 @@ void data::parse(const char* first, const char* second, const relative relative)
 		auto start = std::reverse_iterator<const char*>(iter->first);
 		auto bol = std::find(start, std::reverse_iterator<const char*>(first), '\n');
 		auto eol = std::find(iter->first, iter->eoi, '\n');
-		std::string cmd((&*bol) + 1, eol[-1] == '\r' ? eol - 1 : eol);
-		std::ostringstream ss;
+		std::string cmd(std::to_address(bol) + 1, eol[-1] == '\r' ? eol - 1 : eol);
 		std::size_t count = 0;
 
-		for (auto i = (&*bol) + 1, e = iter->first; i != e; ++i)
+		for (auto i = std::to_address(bol) + 1, e = iter->first; i != e; ++i)
 			if (*i == '\t')
 				count += 8 - count % 8;
 			else
 				++count;
 
-		ss << "Parser error, line " <<
-			std::count(first, iter->first, '\n') + 1 << '\n' <<
-			cmd << '\n' << std::string(count, ' ') << '^';
-		throw std::runtime_error(ss.str());
+		throw z80_error(std::format("Parser error, line {}\n"
+			"{}\n{}^",
+			std::count(first, iter->first, '\n') + 1,
+			cmd,
+			std::string(count, ' ')));
 	}
 	else
 	{
-		for (const auto& pair : _rel_addr)
+		for (const auto& [address, expr] : _rel_addr)
 		{
 			int off = 0;
 
 			if (relative == relative::absolute)
 			{
-				const uint16_t val = parse_expr(pair.second.c_str(),
-					pair.second.c_str() + pair.second.size());
+				const uint16_t val = parse_expr(expr.c_str(),
+					expr.c_str() + expr.size());
 
-				off = static_cast<int>(val - (_program._org + pair.first + 1));
+				off = static_cast<int>(val - (_program._org + address + 1));
 			}
 			else
 			{
-				off = static_cast<int8_t>(parse_expr(pair.second.c_str(),
-					pair.second.c_str() + pair.second.size()));
+				off = static_cast<int8_t>(parse_expr(expr.c_str(),
+					expr.c_str() + expr.size()));
 			}
 
 			if (off < -128 || off > 127)
 			{
-				std::ostringstream ss;
-
-				ss << "Out of range relative call to '" << pair.second << '\'';
-				throw std::runtime_error(ss.str());
+				throw z80_error(std::format("Out of range relative call to '{}'", expr));
 			}
 
-			_program._memory[pair.first] = static_cast<uint8_t>(off);
+			_program._memory[address] = static_cast<uint8_t>(off);
 		}
 
-		for (const auto& pair : _byte_expr)
+		for (const auto& [address, pair] : _byte_expr)
 		{
-			int16_t val = parse_expr(pair.second.first.c_str(),
-				pair.second.first.c_str() + pair.second.first.size());
+			int16_t val = parse_expr(pair.first.c_str(),
+				pair.first.c_str() + pair.first.size());
 
-			if (pair.second.second == '-')
+			if (pair.second == '-')
 				val *= -1;
 
-			_program._memory[pair.first] = val & 0xff;
+			_program._memory[address] = val & 0xff;
 		}
 
-		for (const auto& pair : _word_expr)
+		for (const auto& [address, expr] : _word_expr)
 		{
-			const uint16_t val = parse_expr(pair.second.c_str(),
-				pair.second.c_str() + pair.second.size());
+			const uint16_t val = parse_expr(expr.c_str(),
+				expr.c_str() + expr.size());
 
-			_program._memory[pair.first] = val & 0xff;
-			_program._memory[pair.first + 1] = static_cast<uint8_t>(val >> 8);
+			_program._memory[address] = val & 0xff;
+			_program._memory[address + 1] = static_cast<uint8_t>(val >> 8);
 		}
 	}
 }
