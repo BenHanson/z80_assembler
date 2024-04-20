@@ -162,12 +162,12 @@ static void build_parser(data& d, const std::size_t flags)
 	d._actions[grules.push("dw_list", "full_expr")] = [](data& data)
 	{
 		data.push_word(0);
-		data.wexpr(0);
+		data.wexpr(2, 0);
 	};
 	d._actions[grules.push("dw_list", "dw_list ',' full_expr")] = [](data& data)
 	{
 		data.push_word(0);
-		data.wexpr(2);
+		data.wexpr(2, 2);
 	};
 	d._actions[grules.push("opcode", R"(LD r ',' r2)")] = [](data& data)
 	{
@@ -329,7 +329,7 @@ static void build_parser(data& d, const std::size_t flags)
 
 		data.push_byte(0x3A);
 		data.push_word(0);
-		data.wexpr(4);
+		data.wexpr(3, 4);
 	};
 	d._actions[grules.push("opcode", "LD '(' BC ')' ',' A")] = [](data& data)
 	{
@@ -343,7 +343,7 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		data.push_byte(0x32);
 		data.push_word(0);
-		data.wexpr(2);
+		data.wexpr(3, 2);
 	};
 	// Only A register is legal
 	d._actions[grules.push("opcode", "LD r ',' I")] = [](data& data)
@@ -387,14 +387,14 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		data.push_byte((0b00000001 | data._dd << 4) & 0xff);
 		data.push_word(0);
-		data.wexpr(3);
+		data.wexpr(3, 3);
 	};
 	d._actions[grules.push("opcode", "LD IX ',' expr")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x21);
 		data.push_word(0);
-		data.wexpr(3);
+		data.wexpr(4, 3);
 	};
 	d._actions[grules.push("opcode", "LD IXh ',' r")] = [](data& data)
 	{
@@ -463,7 +463,7 @@ static void build_parser(data& d, const std::size_t flags)
 		data.push_byte(0xFD);
 		data.push_byte(0x21);
 		data.push_word(0);
-		data.wexpr(3);
+		data.wexpr(4, 3);
 	};
 	d._actions[grules.push("opcode", "LD IYh ',' r")] = [](data& data)
 	{
@@ -541,21 +541,21 @@ static void build_parser(data& d, const std::size_t flags)
 		}
 
 		data.push_word(0);
-		data.wexpr(4);
+		data.wexpr(data._dd == 0b10 ? 3 : 4, 4);
 	};
 	d._actions[grules.push("opcode", "LD IX ',' '(' expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x2A);
 		data.push_word(0);
-		data.wexpr(4);
+		data.wexpr(4, 4);
 	};
 	d._actions[grules.push("opcode", "LD IY ',' '(' expr ')'")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x2A);
 		data.push_word(0);
-		data.wexpr(4);
+		data.wexpr(4, 4);
 	};
 	d._actions[grules.push("opcode", "LD '(' expr ')' ',' dd")] = [](data& data)
 	{
@@ -571,21 +571,21 @@ static void build_parser(data& d, const std::size_t flags)
 		}
 
 		data.push_word(0);
-		data.wexpr(2);
+		data.wexpr(data._dd == 0b10 ? 3 : 4, 2);
 	};
 	d._actions[grules.push("opcode", "LD '(' expr ')' ',' IX")] = [](data& data)
 	{
 		data.push_byte(0xDD);
 		data.push_byte(0x22);
 		data.push_word(0);
-		data.wexpr(2);
+		data.wexpr(4, 2);
 	};
 	d._actions[grules.push("opcode", "LD '(' expr ')' ',' IY")] = [](data& data)
 	{
 		data.push_byte(0xFD);
 		data.push_byte(0x22);
 		data.push_word(0);
-		data.wexpr(2);
+		data.wexpr(4, 2);
 	};
 	// Only SP register is legal
 	d._actions[grules.push("opcode", "LD dd ',' HL")] = [](data& data)
@@ -2022,13 +2022,13 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		data.push_byte(0xC3);
 		data.push_word(0);
-		data.wexpr(1);
+		data.wexpr(3, 1);
 	};
 	d._actions[grules.push("opcode", "JP cc ',' full_expr")] = [](data& data)
 	{
 		data.push_byte((0b11000010 | data._cc << 3) & 0xff);
 		data.push_word(0);
-		data.wexpr(3);
+		data.wexpr(3, 3);
 	};
 	d._actions[grules.push("opcode", "JR full_expr")] = [](data& data)
 	{
@@ -2066,13 +2066,13 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		data.push_byte(0xCD);
 		data.push_word(0);
-		data.wexpr(1);
+		data.wexpr(3, 1);
 	};
 	d._actions[grules.push("opcode", "CALL cc ',' full_expr")] = [](data& data)
 	{
 		data.push_byte((0b11000100 | data._cc << 3) & 0xff);
 		data.push_word(0);
-		data.wexpr(3);
+		data.wexpr(3, 3);
 	};
 	d._actions[grules.push("opcode", "RET")] = [](data& data)
 	{
@@ -2420,6 +2420,7 @@ static void build_parser(data& d, const std::size_t flags)
 		"| '-' full_expr %prec UMINUS "
 		"| item");
 	grules.push("item", "Name "
+		"| '$' "
 		"| Binary "
 		"| Hex "
 		"| Char "
@@ -2662,6 +2663,7 @@ static void build_parser(data& d, const std::size_t flags)
 	lrules.push("SUB", grules.token_id("SUB"));
 	lrules.push("XOR", grules.token_id("XOR"));
 	lrules.push("Z", grules.token_id("Z"));
+	lrules.push(R"(\$)", grules.token_id("'$'"));
 	lrules.push("%[01]{8}|[01]{8}b", grules.token_id("Binary"));
 	lrules.push("[&$][0-9A-Fa-f]+|[0-9A-Fa-f]+[hH]", grules.token_id("Hex"));
 	lrules.push(R"('(\\([abefnrtvx\\'"?]|\d{3}|x[\da-f]{2})|[^\\'])')", grules.token_id("Char"));
@@ -2679,7 +2681,7 @@ static void build_expr_parser(data& d)
 	lexertl::rules lrules(*lexertl::regex_flags::dot_not_cr_lf | *lexertl::regex_flags::icase);
 	std::string warnings;
 
-	grules.token("Binary Char Hex Integer Name");
+	grules.token("'$' Binary Char Hex Integer Name");
 	grules.left("'|' '&'");
 	grules.left("'+' '-'");
 	grules.left("'*' '/'");
@@ -2881,6 +2883,8 @@ static void build_expr_parser(data& d)
 	if (!warnings.empty())
 		throw z80_error(warnings);
 
+	d._pc_idx = grules.token_id("'$'");
+	lrules.push(R"(\$)", d._pc_idx);
 	lrules.push("[|]", grules.token_id("'|'"));
 	lrules.push("&", grules.token_id("'&'"));
 	lrules.push("[+]", grules.token_id("'+'"));

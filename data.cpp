@@ -41,6 +41,13 @@ void data::rel_label(const std::size_t idx)
 void data::bexpr(const int32_t idx)
 {
 	const std::string name = dollar(idx).str();
+	lexertl::citerator liter(name.c_str(), name.c_str() + name.size(), _expr_lsm);
+
+	for (; liter->id != 0; ++liter)
+	{
+		if (liter->id == _pc_idx)
+			throw z80_error("Cannot use $ in 8 bit operation");
+	}
 
 	_byte_expr[_program._memory.size() - 1] = std::make_pair(name, '+');
 }
@@ -48,13 +55,40 @@ void data::bexpr(const int32_t idx)
 void data::bexpr(const int32_t idx, const char op)
 {
 	const std::string name = dollar(idx).str();
+	lexertl::citerator liter(name.c_str(), name.c_str() + name.size(), _expr_lsm);
+
+	for (; liter->id != 0; ++liter)
+	{
+		if (liter->id == _pc_idx)
+			throw z80_error("Cannot use $ in 8 bit operation");
+	}
 
 	_byte_expr[_program._memory.size() - 1] = std::make_pair(name, op);
 }
 
-void data::wexpr(const int32_t idx)
+void data::wexpr(const uint16_t offset, const int32_t idx)
 {
-	const std::string name = dollar(idx).str();
+	std::string name = dollar(idx).str();
+	lexertl::citerator liter(name.c_str(), name.c_str() + name.size(), _expr_lsm);
+	std::vector <std::pair<std::size_t, uint16_t>> replacements;
+
+	for (; liter->id != 0; ++liter)
+	{
+		if (liter->id == _pc_idx)
+		{
+			const uint16_t addr = _program._org +
+				(_program._memory.size() & 0xffff) - offset;
+
+			replacements.emplace_back(liter->first - name.c_str(), addr);
+		}
+	}
+
+	for (auto iter = replacements.rbegin(), end = replacements.rend();
+		iter != end; ++iter)
+	{
+		name.erase(iter->first, 1);
+		name.insert(iter->first, std::to_string(iter->second));
+	}
 
 	_word_expr[_program._memory.size() - 2] = name;
 }

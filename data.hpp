@@ -65,6 +65,7 @@ struct data
 	uint8_t _r2 = static_cast<uint8_t>(~0);
 	uint8_t _rr = static_cast<uint8_t>(~0);
 	uint16_t _integer = static_cast<uint16_t>(~0);
+	uint16_t _pc_idx = static_cast<uint16_t>(~0);
 	char _plus_minus = '+';
 	std::stack<int> _acc;
 	program _program;
@@ -76,7 +77,7 @@ struct data
 	void rel_label(const std::size_t idx);
 	void bexpr(const int32_t idx);
 	void bexpr(const int32_t idx, const char op);
-	void wexpr(const int32_t idx);
+	void wexpr(const uint16_t offset, const int32_t idx);
 
 	void parse(const char* first, const char* second, const relative relative);
 	uint16_t parse_expr(const char* first, const char* second);
