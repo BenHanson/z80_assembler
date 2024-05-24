@@ -3,36 +3,34 @@
 #include "enums.hpp"
 #include <lexertl/generator.hpp>
 #include "skool.hpp"
-#include <sstream>
 
-void parse_skool(const char* first, const char* second,
-	data& data, const base base)
+void parse_skool(const char* first, const char* second, data& data)
 {
-	lexertl::rules rules;
-	lexertl::state_machine sm;
+	// Enabled the lexertl '*' enum class operator
+	using namespace lexertl;
+	enum class token { decimal = 1, hex };
+	rules rules;
+	state_machine sm;
 
-	if (base == base::hexadecimal)
-		rules.push(R"(\$[0-9A-Fa-f]{4})", 1);
-	else
-		rules.push(R"(\d{5})", 1);
+	rules.push(R"(\d{5})", *token::decimal);
+	rules.push(R"(\$[0-9A-Fa-f]{4})", *token::hex);
+	rules.push("[@;i].*\r?\n", rules::skip());
+	rules.push(R"("/*"(?s:.)*?"*/")", rules::skip());
+	rules.push("(?s:.)", rules::skip());
+	generator::build(rules, sm);
 
-	rules.push("[@;i].*\r?\n", lexertl::rules::skip());
-	rules.push(R"("/*"(?s:.)*?"*/")", lexertl::rules::skip());
-	rules.push("(?s:.)", lexertl::rules::skip());
-	lexertl::generator::build(rules, sm);
-
-	lexertl::citerator iter(first, second, sm);
+	citerator iter(first, second, sm);
 
 	data._program._org = 0;
 
 	while (iter->id != 0)
 	{
 		uint16_t addr = 0;
-		const char* eol = std::find(iter->first, second, '\n');
+		const auto eol = std::find(iter->first, second, '\n');
 
-		std::from_chars(iter->first + (base == base::decimal ? 0 :1),
-			iter->first + (base == base::decimal ? 6 : 5),
-			addr, base == base::decimal ? 10 : 16);
+		std::from_chars(iter->first + (iter->id == *token::decimal ? 0 :1),
+			iter->first + (iter->id == *token::decimal ? 6 : 5),
+			addr, iter->id == *token::decimal ? 10 : 16);
 
 		if (addr == 0)
 			continue;
@@ -50,7 +48,7 @@ void parse_skool(const char* first, const char* second,
 		}
 
 		data.parse(first, iter->first + 6, *eol == '\0' ? eol : eol + 1);
-		iter = lexertl::citerator(*eol == '\0' ? eol : eol + 1, second, sm);
+		iter = citerator(*eol == '\0' ? eol : eol + 1, second, sm);
 	}
 
 	std::cout << '\n';

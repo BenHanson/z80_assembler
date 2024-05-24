@@ -2,5 +2,4 @@
 
 #include "data.hpp"
 
-void parse_skool(const char* first, const char* second,
-	data& data, const base base);
+void parse_skool(const char* first, const char* second, data& data);

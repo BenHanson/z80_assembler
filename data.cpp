@@ -3,7 +3,6 @@
 #include <format>
 #include <parsertl/lookup.hpp>
 #include <stdexcept>
-#include <sstream>
 #include <string>
 #include "z80_error.hpp"
 

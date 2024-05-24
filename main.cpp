@@ -88,7 +88,7 @@ int main(int argc, const char* argv[])
 		build_parsers(data);
 
 		if (skool)
-			parse_skool(mf.data(), mf.data() + mf.size(), data, base);
+			parse_skool(mf.data(), mf.data() + mf.size(), data);
 		else
 			data.parse(mf.data(), mf.data(), mf.data() + mf.size());
 
