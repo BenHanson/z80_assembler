@@ -3,6 +3,7 @@
 #include <iostream>
 #include <lexertl/memory_file.hpp>
 #include "parsers.hpp"
+#include "skool.hpp"
 #include "z80_error.hpp"
 
 static void save(program& program, const char* src, const char* dest)
@@ -55,6 +56,7 @@ int main(int argc, const char* argv[])
 
 	try
 	{
+		const bool skool = std::string_view(argv[1]).ends_with(".skool");
 		lexertl::memory_file mf(argv[1]);
 		data data;
 		std::vector<const char*> pathnames;
@@ -84,7 +86,13 @@ int main(int argc, const char* argv[])
 			throw z80_error(usage());
 
 		build_parsers(data);
-		data.parse(mf.data(), mf.data() + mf.size(), relative);
+
+		if (skool)
+			parse_skool(mf.data(), mf.data() + mf.size(), data, base);
+		else
+			data.parse(mf.data(), mf.data(), mf.data() + mf.size());
+
+		data.fixup_addresses(skool ? relative::absolute : relative);
 		mf.close();
 
 		if (data._program._org + data._program._memory.size() - 1 > 65535)

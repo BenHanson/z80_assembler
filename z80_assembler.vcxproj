@@ -151,12 +151,14 @@
     <ClCompile Include="disassem.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parsers.cpp" />
+    <ClCompile Include="skool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="data.hpp" />
     <ClInclude Include="disassem.hpp" />
     <ClInclude Include="enums.hpp" />
     <ClInclude Include="parsers.hpp" />
+    <ClInclude Include="skool.hpp" />
     <ClInclude Include="z80_error.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

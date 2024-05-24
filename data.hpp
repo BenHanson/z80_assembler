@@ -51,7 +51,7 @@ struct data
 	std::map<std::string, uint16_t> _label;
 	std::map<std::string, int> _equ;
 	// Relative jumps
-	std::map<std::size_t, std::string> _rel_addr;
+	std::map<std::size_t, std::pair<std::string, std::size_t>> _rel_addr;
 	// 8 bit expressions
 	std::map<std::size_t, std::pair<std::string, char>> _byte_expr;
 	// 16 bit expressions
@@ -69,6 +69,7 @@ struct data
 	char _plus_minus = '+';
 	std::stack<int> _acc;
 	program _program;
+	const char* _first = nullptr;
 
 	token dollar(const std::size_t index) const;
 	void push_byte();
@@ -79,8 +80,9 @@ struct data
 	void bexpr(const int32_t idx, const char op);
 	void wexpr(const uint16_t offset, const int32_t idx);
 
-	void parse(const char* first, const char* second, const relative relative);
+	void parse(const char* begin, const char* first, const char* second);
 	uint16_t parse_expr(const char* first, const char* second);
 
+	void fixup_addresses(const relative relative);
 	void clear();
 };

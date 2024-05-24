@@ -33,9 +33,11 @@ void data::push_word(const uint16_t w)
 
 void data::rel_label(const std::size_t idx)
 {
-	const std::string name = dollar(idx).str();
+	const auto& token = dollar(idx);
+	const std::string name = token.str();
 
-	_rel_addr[_program._memory.size() - 1] = name;
+	_rel_addr[_program._memory.size() - 1] =
+		std::pair(name, std::count(_first, token.first, '\n') + 1);
 }
 
 void data::bexpr(const int32_t idx)
@@ -93,10 +95,11 @@ void data::wexpr(const uint16_t offset, const int32_t idx)
 	_word_expr[_program._memory.size() - 2] = name;
 }
 
-void data::parse(const char* first, const char* second, const relative relative)
+void data::parse(const char* begin, const char* first, const char* second)
 {
 	lexertl::citerator iter(first, second, _lsm);
 
+	_first = first;
 	// In case you are parsing one line at a time
 	_productions.clear();
 	_results.reset(iter->id, _gsm);
@@ -142,56 +145,9 @@ void data::parse(const char* first, const char* second, const relative relative)
 
 		throw z80_error(std::format("Parser error, line {}\n"
 			"{}\n{}^",
-			std::count(first, iter->first, '\n') + 1,
+			std::count(begin, iter->first, '\n') + 1,
 			cmd,
 			std::string(count, ' ')));
-	}
-	else
-	{
-		for (const auto& [address, expr] : _rel_addr)
-		{
-			int off = 0;
-
-			if (relative == relative::absolute)
-			{
-				const uint16_t val = parse_expr(expr.c_str(),
-					expr.c_str() + expr.size());
-
-				off = static_cast<int>(val - (_program._org + address + 1));
-			}
-			else
-			{
-				off = static_cast<int8_t>(parse_expr(expr.c_str(),
-					expr.c_str() + expr.size()));
-			}
-
-			if (off < -128 || off > 127)
-			{
-				throw z80_error(std::format("Out of range relative call to '{}'", expr));
-			}
-
-			_program._memory[address] = static_cast<uint8_t>(off);
-		}
-
-		for (const auto& [address, pair] : _byte_expr)
-		{
-			int16_t val = parse_expr(pair.first.c_str(),
-				pair.first.c_str() + pair.first.size());
-
-			if (pair.second == '-')
-				val *= -1;
-
-			_program._memory[address] = val & 0xff;
-		}
-
-		for (const auto& [address, expr] : _word_expr)
-		{
-			const uint16_t val = parse_expr(expr.c_str(),
-				expr.c_str() + expr.size());
-
-			_program._memory[address] = val & 0xff;
-			_program._memory[address + 1] = static_cast<uint8_t>(val >> 8);
-		}
 	}
 }
 
@@ -227,6 +183,57 @@ uint16_t data::parse_expr(const char* first, const char* second)
 	ret = static_cast<uint16_t>(_acc.top());
 	_acc.pop();
 	return ret;
+}
+
+void data::fixup_addresses(const relative relative)
+{
+	for (const auto& [address, pair] : _rel_addr)
+	{
+		int off = 0;
+
+		if (relative == relative::absolute)
+		{
+			const uint16_t val = parse_expr(pair.first.c_str(),
+				pair.first.c_str() + pair.first.size());
+
+			off = static_cast<int>(val - (_program._org + address + 1));
+		}
+		else
+		{
+			off = static_cast<int8_t>(parse_expr(pair.first.c_str(),
+				pair.first.c_str() + pair.first.size()));
+		}
+
+		if (off < -128 || off > 127)
+		{
+			throw z80_error(std::format("Out of range relative call "
+				"to '{}' on line {}",
+				pair.first,
+				pair.second));
+		}
+
+		_program._memory[address] = static_cast<uint8_t>(off);
+	}
+
+	for (const auto& [address, pair] : _byte_expr)
+	{
+		int16_t val = parse_expr(pair.first.c_str(),
+			pair.first.c_str() + pair.first.size());
+
+		if (pair.second == '-')
+			val *= -1;
+
+		_program._memory[address] = val & 0xff;
+	}
+
+	for (const auto& [address, expr] : _word_expr)
+	{
+		const uint16_t val = parse_expr(expr.c_str(),
+			expr.c_str() + expr.size());
+
+		_program._memory[address] = val & 0xff;
+		_program._memory[address + 1] = static_cast<uint8_t>(val >> 8);
+	}
 }
 
 void data::clear()
