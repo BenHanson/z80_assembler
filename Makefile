@@ -7,8 +7,8 @@ LIBS =
 
 all: z80_assembler
 
-z80_assembler: data.o disassem.o main.o parsers.o
-	$(CXX) $(LDFLAGS) -o z80_assembler data.o disassem.o main.o parsers.o $(LIBS)
+z80_assembler: data.o disassem.o main.o parsers.o skool.o
+	$(CXX) $(LDFLAGS) -o z80_assembler data.o disassem.o main.o parsers.o skool.o $(LIBS)
 
 data.o: data.cpp
 	$(CXX) $(CXXFLAGS) -o data.o -c data.cpp
@@ -21,6 +21,9 @@ main.o: main.cpp
 
 parsers.o: parsers.cpp
 	$(CXX) $(CXXFLAGS) -o parsers.o -c parsers.cpp
+
+skool.o: skool.cpp
+	$(CXX) $(CXXFLAGS) -o skool.o -c skool.cpp
 
 library:
 

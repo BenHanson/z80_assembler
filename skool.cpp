@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <charconv>
 #include "enums.hpp"
 #include <lexertl/generator.hpp>
 #include "skool.hpp"
@@ -43,7 +44,7 @@ void parse_skool(const char* first, const char* second,
 		}
 		else if (data._program._org + data._program._memory.size() != addr)
 		{
-			uint16_t next_addr = data._program._org + data._program._memory.size() & 0xffff;
+			uint16_t next_addr = data._program._org + (data._program._memory.size() & 0xffff);
 
 			data._program._memory.resize(data._program._memory.size() + addr - next_addr);
 		}
