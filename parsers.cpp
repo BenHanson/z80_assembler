@@ -21,8 +21,8 @@ static void build_parser(data& d, const std::size_t flags)
 	grules.left("'*' '/'");
 	grules.precedence("UMINUS");
 
-	grules.push("mnemonics", "line NL "
-		"| mnemonics line NL");
+	grules.push("mnemonics", "line "
+		"| mnemonics NL line");
 	grules.push("line", "%empty | data");
 	d._actions[grules.push("line", "Name EQU full_expr")] = [](data& data)
 	{
