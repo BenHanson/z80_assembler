@@ -30,6 +30,15 @@
     <ClCompile Include="skool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sna.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sna.hpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dump.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="data.hpp">
@@ -48,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="skool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dump.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

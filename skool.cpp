@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <charconv>
-#include "enums.hpp"
 #include <lexertl/generator.hpp>
 #include "skool.hpp"
 
@@ -50,6 +49,4 @@ void parse_skool(const char* first, const char* second, data& data)
 		data.parse(first, iter->first + 6, *eol == '\0' ? eol : eol + 1);
 		iter = citerator(*eol == '\0' ? eol : eol + 1, second, sm);
 	}
-
-	std::cout << '\n';
 }

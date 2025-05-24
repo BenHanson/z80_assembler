@@ -46,10 +46,15 @@ static void build_parser(data& d, const std::size_t flags)
 		{
 			data._program._mem_type.emplace_back(program::
 				block(program::block::type::code,
-				data._program._memory.size()));
+				data._program._memory.size() - data._program._last_size));
 		}
 		else
-			data._program._mem_type.back()._end = data._program._memory.size();
+		{
+			data._program._mem_type.back()._count +=
+				data._program._memory.size() - data._program._last_size;
+		}
+
+		data._program._last_size = data._program._memory.size();
 	};
 	grules.push("line", "label opt_colon opt_opcode_data");
 	d._actions[grules.push("label", "Name")] = [](data& data)
@@ -73,10 +78,16 @@ static void build_parser(data& d, const std::size_t flags)
 			program::block::type::code)
 		{
 			data._program._mem_type.emplace_back(program::
-				block(program::block::type::code, data._program._memory.size()));
+				block(program::block::type::code,
+					data._program._memory.size() - data._program._last_size));
 		}
 		else
-			data._program._mem_type.back()._end = data._program._memory.size();
+		{
+			data._program._mem_type.back()._count +=
+				data._program._memory.size() - data._program._last_size;
+		}
+
+		data._program._last_size = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DB db_list")] = [](data& data)
 	{
@@ -84,10 +95,16 @@ static void build_parser(data& d, const std::size_t flags)
 			data._program._mem_type.back()._type != program::block::type::db)
 		{
 			data._program._mem_type.emplace_back(program::
-				block(program::block::type::db, data._program._memory.size()));
+				block(program::block::type::db,
+					data._program._memory.size() - data._program._last_size));
 		}
 		else
-			data._program._mem_type.back()._end = data._program._memory.size();
+		{
+			data._program._mem_type.back()._count +=
+				data._program._memory.size() - data._program._last_size;
+		}
+
+		data._program._last_size = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DS integer")] = [](data& data)
 	{
@@ -97,10 +114,16 @@ static void build_parser(data& d, const std::size_t flags)
 			data._program._mem_type.back()._type != program::block::type::ds)
 		{
 			data._program._mem_type.emplace_back(program::
-				block(program::block::type::ds, data._program._memory.size()));
+				block(program::block::type::ds,
+					data._program._memory.size() - data._program._last_size));
 		}
 		else
-			data._program._mem_type.back()._end = data._program._memory.size();
+		{
+			data._program._mem_type.back()._count +=
+				data._program._memory.size() - data._program._last_size;
+		}
+
+		data._program._last_size = data._program._memory.size();
 	};
 	d._actions[grules.push("data", "DW dw_list")] = [](data& data)
 	{
@@ -109,10 +132,15 @@ static void build_parser(data& d, const std::size_t flags)
 		{
 			data._program._mem_type.emplace_back(program::
 				block(program::block::type::dw,
-				data._program._memory.size()));
+					data._program._memory.size() - data._program._last_size));
 		}
 		else
-			data._program._mem_type.back()._end = data._program._memory.size();
+		{
+			data._program._mem_type.back()._count +=
+				data._program._memory.size() - data._program._last_size;
+		}
+
+		data._program._last_size = data._program._memory.size();
 	};
 	d._actions[grules.push("db_list", "full_expr")] = [](data& data)
 	{

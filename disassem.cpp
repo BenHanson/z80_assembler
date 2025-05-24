@@ -1,4 +1,6 @@
 #include "disassem.hpp"
+
+#include <bit>
 #include <iomanip>
 #include <sstream>
 
@@ -3179,29 +3181,41 @@ void dump(const program& program, const base base, const relative relative)
 	const uint8_t* first = &program._memory.front();
 	const uint8_t* second = first + program._memory.size();
 	auto iter = program._mem_type.begin();
+	std::size_t count = iter->_count;
 	std::string line;
 	std::string bytes;
 
 	while (first < second)
 	{
 		const uint8_t* curr = first;
-		std::size_t index = first - &program._memory.front();
 		std::ostringstream ss;
 		std::size_t offset = 0;
 
-		if (iter != program._mem_type.end() && iter->_end <= index)
+		if (count == 0)
+		{
 			++iter;
+
+			if (iter == program._mem_type.end())
+				break;
+
+			count = iter->_count;
+		}
 
 		if (iter != program._mem_type.end())
 		{
 			switch (iter->_type)
 			{
 			case program::block::type::code:
+			{
+				const uint8_t* prev = first;
+
 				line = fetch_opcode(first, program, base, relative);
+				count -= first - prev;
 				break;
+			}
 			case program::block::type::ds:
 			{
-				const std::size_t num = iter->_end - index;
+				const std::size_t num = count;
 
 				line = "DS ";
 
@@ -3223,13 +3237,14 @@ void dump(const program& program, const base base, const relative relative)
 					line += std::to_string(num);
 
 				first += num;
+				count = 0;
 				break;
 			}
 			case program::block::type::db:
 				line = "DB " + bto_string(first++, base);
-				++index;
+				--count;
 
-				for (int i = 0; i < 3 && index < iter->_end; ++i, ++first, ++index)
+				for (int i = 0; i < 3 && count; ++i, ++first, --count)
 				{
 					line += ", " + bto_string(first, base);
 				}
@@ -3238,12 +3253,13 @@ void dump(const program& program, const base base, const relative relative)
 			case program::block::type::dw:
 				line = "DW " + wto_string(first, base);
 				++first;
-				index += 2;
+				count -= 2;
 
-				if (index < iter->_end)
+				if (count)
 				{
 					line += ", " + wto_string(first, base);
 					++first;
+					count -= 2;
 				}
 
 				break;
@@ -3286,6 +3302,5 @@ void dump(const program& program, const base base, const relative relative)
 std::string mnemonic(const program& program, const base base, const uint8_t*& end,
 	const relative relative)
 {
-	end = &program._memory.front();
 	return fetch_opcode(end, program, base, relative);
 }

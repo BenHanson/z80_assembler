@@ -10,19 +10,20 @@ struct program
 	using memory = std::vector<uint8_t>;
 	struct block
 	{
-		enum class type { code, ds, db, dw };
+		enum class type { code, db, ds, dw };
 		type _type;
-		std::size_t _end = 0;
+		std::size_t _count = 0;
 
-		block(const type type, const std::size_t end) :
+		block(const type type, const std::size_t count) :
 			_type(type),
-			_end(end)
+			_count(count)
 		{
 		}
 	};
 
 	uint16_t _org = 23296;
 	bool _org_set = false;
+	std::size_t _last_size = 0;
 	memory _memory;
 	std::vector<block> _mem_type;
 
@@ -30,6 +31,7 @@ struct program
 	{
 		_org = 23296;
 		_org_set = false;
+		_last_size = 0;
 		_memory.clear();
 		_mem_type.clear();
 	}

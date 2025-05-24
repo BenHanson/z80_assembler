@@ -149,13 +149,17 @@
   <ItemGroup>
     <ClCompile Include="data.cpp" />
     <ClCompile Include="disassem.cpp" />
+    <ClCompile Include="dump.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parsers.cpp" />
     <ClCompile Include="skool.cpp" />
+    <ClCompile Include="sna.cpp" />
+    <ClCompile Include="sna.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="data.hpp" />
     <ClInclude Include="disassem.hpp" />
+    <ClInclude Include="dump.hpp" />
     <ClInclude Include="enums.hpp" />
     <ClInclude Include="parsers.hpp" />
     <ClInclude Include="skool.hpp" />
