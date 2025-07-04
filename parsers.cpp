@@ -1,7 +1,10 @@
 #include "data.hpp"
+#include "z80_error.hpp"
+
 //#include <parsertl/debug.hpp>
 #include <parsertl/generator.hpp>
-#include "z80_error.hpp"
+
+#include <format>
 
 static void build_parser(data& d, const std::size_t flags)
 {
@@ -28,8 +31,13 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		const auto& t = data.dollar(2);
 		const uint16_t val = data.parse_expr(t.first, t.second);
+		const auto label = data.dollar(0).str();
 
-		data._equ[data.dollar(0).str()] = val;
+		if (data._label.contains(label))
+			throw z80_error(std::format("EQU '{}' is already defined as a label",
+				label));
+
+		data._equ[label] = val;
 	};
 	d._actions[grules.push("line", "ORG integer")] = [](data& data)
 	{
@@ -59,15 +67,19 @@ static void build_parser(data& d, const std::size_t flags)
 	grules.push("line", "label opt_colon opt_opcode_data");
 	d._actions[grules.push("label", "Name")] = [](data& data)
 	{
-		std::string name = data.dollar(0).str();
+		std::string label = data.dollar(0).str();
 
-		if (auto iter = data._label.find(name);
+		if (auto iter = data._label.find(label);
 			iter != data._label.end())
 		{
-			throw z80_error(name + " already exists");
+			throw z80_error(std::format("Label '{}' already exists", label));
 		}
 
-		data._label[name] = static_cast<uint16_t>(data._program._memory.size());
+		if (data._equ.contains(label))
+			throw z80_error(std::format("Label '{}' is already defined as an EQU",
+				label));
+
+		data._label[label] = static_cast<uint16_t>(data._program._memory.size());
 	};
 	grules.push("opt_colon", "%empty | ':'");
 	grules.push("opt_opcode_data", "%empty | data");
@@ -325,7 +337,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0x0A);
@@ -338,7 +350,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0x1A);
@@ -351,7 +363,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0x3A);
@@ -380,7 +392,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0xED);
@@ -394,7 +406,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0xED);
@@ -430,7 +442,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register H not allowed");
+			throw z80_error(std::format("{}: Register H not allowed", str));
 		}
 
 		if (data._r == 0b101)
@@ -438,7 +450,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register L not allowed");
+			throw z80_error(std::format("{}: Register L not allowed", str));
 		}
 
 		data.push_byte(0xDD);
@@ -461,7 +473,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register H not allowed");
+			throw z80_error(std::format("{}: Register H not allowed", str));
 		}
 
 		if (data._r == 0b101)
@@ -469,7 +481,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register L not allowed");
+			throw z80_error(std::format("{}: Register L not allowed", str));
 		}
 
 		data.push_byte(0xDD);
@@ -499,7 +511,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register H not allowed");
+			throw z80_error(std::format("{}: Register H not allowed", str));
 		}
 
 		if (data._r == 0b101)
@@ -507,7 +519,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register L not allowed");
+			throw z80_error(std::format("{}: Register L not allowed", str));
 		}
 
 		data.push_byte(0xFD);
@@ -530,7 +542,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register H not allowed");
+			throw z80_error(std::format("{}: Register H not allowed", str));
 		}
 
 		if (data._r == 0b101)
@@ -538,7 +550,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Register L not allowed");
+			throw z80_error(std::format("{}: Register L not allowed", str));
 		}
 
 		data.push_byte(0xFD);
@@ -622,7 +634,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Only register SP is valid");
+			throw z80_error(std::format("{}: Only register SP is valid", str));
 		}
 
 		data.push_byte(0xF9);
@@ -635,7 +647,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Only register SP is valid");
+			throw z80_error(std::format("{}: Only register SP is valid", str));
 		}
 
 		data.push_byte(0xDD);
@@ -649,7 +661,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(3).second);
 
-			throw z80_error(str + ": Only register SP is valid");
+			throw z80_error(std::format("{}: Only register SP is valid", str));
 		}
 
 		data.push_byte(0xFD);
@@ -2164,7 +2176,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw z80_error(str + ": Only register A is valid");
+			throw z80_error(std::format("{}: Only register A is valid", str));
 		}
 
 		data.push_byte(0xDB);
@@ -2219,7 +2231,7 @@ static void build_parser(data& d, const std::size_t flags)
 			const std::string str(data.dollar(0).first,
 				data.dollar(5).second);
 
-			throw z80_error(str + ": Only 0 is valid");
+			throw z80_error(std::format("{}: Only 0 is valid", str));
 		}
 
 		data.push_byte(0xED);
@@ -2775,7 +2787,7 @@ static void build_expr_parser(data& d)
 		auto equ = data._equ.find(str);
 
 		if (equ == data._equ.end())
-			throw z80_error("Unknown label " + str);
+			throw z80_error(std::format("Unknown label '{}'", str));
 
 		data._acc.push(equ->second);
 	};
