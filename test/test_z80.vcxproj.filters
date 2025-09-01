@@ -29,13 +29,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\data.h">
+    <ClInclude Include="..\data.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\disassem.h">
+    <ClInclude Include="..\disassem.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\parsers.h">
+    <ClInclude Include="..\parsers.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

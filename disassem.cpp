@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 std::string bto_string(const uint8_t* curr, const base base, const bool is_signed = false)

@@ -1,5 +1,7 @@
 #include "dump.hpp"
 
+#include <iostream>
+
 void dump_blocks(const program& program)
 {
 	std::cout << program._org << '\n';

@@ -1,10 +1,12 @@
-#include <charconv>
-#include "../disassem.h"
+#include "../disassem.hpp"
 #include "../../lexertl14/include/lexertl/generator.hpp"
-#include <iostream>
 #include "../../lexertl14/include/lexertl/iterator.hpp"
 #include "../../lexertl14/include/lexertl/memory_file.hpp"
-#include "../parsers.h"
+#include "../parsers.hpp"
+
+#include <bit>
+#include <charconv>
+#include <iostream>
 
 enum
 {
@@ -153,8 +155,11 @@ void test_opcodes(const char* pathname, data& data, const lexertl::state_machine
 				const uint8_t* end = nullptr;
 
 				data._program._org = 16384;
-				data.parse(cmd.data(), cmd.data() + cmd.size(), relative::offset);
-				cmd = mnemonic(data._program, base::hexadecimal, end, relative::offset);
+				data.parse(cmd.data(), cmd.data(), cmd.data() + cmd.size());
+				data.fixup_addresses(relative::offset);
+				end = &data._program._memory.front();
+				cmd = mnemonic(data._program, base::hexadecimal, end,
+					relative::offset);
 				replace_vars(text, base::hexadecimal);
 
 				if (opcodes != data._program._memory || cmd != text)

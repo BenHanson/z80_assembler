@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O -std=c++17
+CXXFLAGS = -O -std=c++20 -I ../../../lexertl17/include -I ../../../parsertl17/include
 
 LDFLAGS = -O
 
