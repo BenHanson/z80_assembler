@@ -2300,6 +2300,7 @@ static void build_parser(data& d, const std::size_t flags)
 	{
 		data._r = 0b101;
 	};
+	// A repeat of rule r, just so we can assign a value to _r2
 	d._actions[grules.push("r2", "A")] = [](data& data)
 	{
 		data._r2 = 0b111;

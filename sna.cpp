@@ -1,34 +1,39 @@
-#include <bit>
-#include <charconv>
-#include <format>
-#include <lexertl/generator.hpp>
-#include <lexertl/memory_file.hpp>
-#include <stdlib.h>
+#include "data.hpp"
 #include "sna.hpp"
 #include "z80_error.hpp"
+
+#include <lexertl/generator.hpp>
+#include <lexertl/iterator.hpp>
+#include <lexertl/memory_file.hpp>
+#include <lexertl/rules.hpp>
+#include <lexertl/state_machine.hpp>
+
+#include <charconv>
+#include <cstdlib>
+#include <format>
+#include <string>
 
 void read_sna(std::string pathname, const char* first,
 	const char* second, data& data)
 {
 	lexertl::memory_file mf;
-	/*uint8_t I = *first;
-	uint16_t HL_alt = *std::bit_cast<uint16_t*>(first + 1);
-	uint16_t DE_alt = *std::bit_cast<uint16_t*>(first + 3);
-	uint16_t BC_alt = *std::bit_cast<uint16_t*>(first + 5);
-	uint16_t AF_alt = *std::bit_cast<uint16_t*>(first + 7);
-	uint16_t HL = *std::bit_cast<uint16_t*>(first + 9);
-	uint16_t DE = *std::bit_cast<uint16_t*>(first + 11);
-	uint16_t BC = *std::bit_cast<uint16_t*>(first + 13);
-	uint16_t IY = *std::bit_cast<uint16_t*>(first + 15);
-	uint16_t IX = *std::bit_cast<uint16_t*>(first + 17);
-	uint8_t Interrupt = first[19];
-	uint8_t R = first[20];
-	uint16_t AF = *std::bit_cast<uint16_t*>(first + 21);
-	uint16_t SP = *std::bit_cast<uint16_t*>(first + 23);
-	uint8_t IntMode = first[25];
-	uint8_t BorderColor = first[26];*/
-
-	//27       49152  bytes  RAM dump 16384..65535
+	// 8 bits I [0];
+	// 16 bits HL_alt [1]
+	// 16 bits DE_alt [3]
+	// 16 bits BC_alt [5]
+	// 16 bits AF_alt [7]
+	// 16 bits HL [9]
+	// 16 bits DE [11]
+	// 16 bits BC [13]
+	// 16 bits IY [15]
+	// 16 bits IX [17]
+	// 8 bits Interrupt [19]
+	// 8 bits R = [20]
+	// 16 bits AF [21]
+	// 16 bits SP [23]
+	// 8 bits IntMode [25]
+	// 8 bits BorderColor [26]
+	//49152  bytes  RAM dump 16384..65535 [27]
 	data._program._memory.assign(first + 27, second);
 
 	pathname.erase(pathname.size() - 4);
@@ -56,19 +61,21 @@ void read_sna(std::string pathname, const char* first,
 
 	for (; iter->id != 0; ++iter)
 	{
+		using enum program::block::type;
+
 		if (iter->id == *token::nl)
 			continue;
 
 		auto sv = iter->view();
-		program::block::type type = program::block::type::code;
+		auto type = code;
 		std::size_t count = 0;
 
 		if (sv == "db")
-			type = program::block::type::db;
+			type = db;
 		else if (sv == "ds")
-			type = program::block::type::ds;
+			type = ds;
 		else if (sv == "dw")
-			type = program::block::type::dw;
+			type = dw;
 
 		++iter;
 		std::from_chars(iter->first, iter->second, count);

@@ -1,9 +1,20 @@
 #pragma once
 
 #include "enums.hpp"
+
 #include <lexertl/iterator.hpp>
+#include <lexertl/state_machine.hpp>
+#include <parsertl/state_machine.hpp>
 #include <parsertl/token.hpp>
 #include <parsertl/match_results.hpp>
+
+#include <cstdint>
+#include <map>
+#include <stack>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 struct program
 {
@@ -50,8 +61,8 @@ struct data
 	parsertl::match_results _results;
 	token::token_vector _productions;
 
-	std::map<std::string, uint16_t> _label;
-	std::map<std::string, int> _equ;
+	std::map<std::string, uint16_t, std::less<>> _label;
+	std::map<std::string, int, std::less<>> _equ;
 	// Relative jumps
 	std::map<std::size_t, std::pair<std::string, std::size_t>> _rel_addr;
 	// 8 bit expressions

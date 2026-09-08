@@ -1,7 +1,14 @@
+#include "data.hpp"
+#include "skool.hpp"
+
+#include <lexertl/generator.hpp>
+#include <lexertl/iterator.hpp>
+#include <lexertl/rules.hpp>
+#include <lexertl/state_machine.hpp>
+
 #include <algorithm>
 #include <charconv>
-#include <lexertl/generator.hpp>
-#include "skool.hpp"
+#include <cstdint>
 
 void parse_skool(const char* first, const char* second, data& data)
 {

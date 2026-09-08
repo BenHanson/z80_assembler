@@ -1,10 +1,22 @@
-#include <algorithm>
 #include "data.hpp"
-#include <format>
+#include "enums.hpp"
+#include "z80_error.hpp"
+
+#include <lexertl/iterator.hpp>
+#include <parsertl/enums.hpp>
 #include <parsertl/lookup.hpp>
+#include <parsertl/match_results.hpp>
+#include <parsertl/token.hpp>
+
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <format>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include "z80_error.hpp"
+#include <utility>
+#include <vector>
 
 data::token data::dollar(const std::size_t index) const
 {

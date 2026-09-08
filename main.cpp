@@ -1,12 +1,22 @@
+#include "data.hpp"
 #include "disassem.hpp"
 #include "dump.hpp"
-#include <format>
-#include <iostream>
-#include <lexertl/memory_file.hpp>
+#include "enums.hpp"
 #include "parsers.hpp"
 #include "skool.hpp"
 #include "sna.hpp"
 #include "z80_error.hpp"
+
+#include <lexertl/memory_file.hpp>
+
+#include <cstdint>
+#include <cstdio>
+#include <exception>
+#include <format>
+#include <iostream>
+#include <string>
+#include <string.h>
+#include <vector>
 
 static void save(program& program, const char* src, const char* dest)
 {
@@ -45,9 +55,10 @@ static void save(program& program, const char* src, const char* dest)
 static const char* usage()
 {
 	return "USAGE: z80_assembler <pathname> "
-		"[<source .sna> (<dest .sna> | --blocks)] "
+		"[<source .sna> <dest .sna>] "
+		"[--blocks] "
 		"[--(dec|hex)] "
-		"[--(jr_off|jr_addr)]\n";
+		"[--(jr_offset|jr_address)]\n";
 }
 
 int main(int argc, const char* argv[])
@@ -62,9 +73,18 @@ int main(int argc, const char* argv[])
 	{
 		enum class filetype { assembly, skool, sna };
 		const auto pathname = std::string(argv[1]);
-		const filetype type = pathname.ends_with(".skool") ?
-			filetype::skool : pathname.ends_with(".sna") ?
-			filetype::sna : filetype::assembly;
+		const filetype type = [&pathname]()
+			{
+				using enum filetype;
+
+				if (pathname.ends_with(".skool"))
+					return skool;
+
+				if (pathname.ends_with(".sna"))
+					return sna;
+
+				return assembly;
+			}();
 		lexertl::memory_file mf(argv[1]);
 		data data;
 		std::vector<const char*> pathnames;
@@ -82,9 +102,9 @@ int main(int argc, const char* argv[])
 				base = base::decimal;
 			else if (::strcmp(arg, "--hex") == 0)
 				base = base::hexadecimal;
-			else if (::strcmp(arg, "--jr_off") == 0)
+			else if (::strcmp(arg, "--jr_offset") == 0)
 				relative = relative::offset;
-			else if (::strcmp(arg, "--jr_addr") == 0)
+			else if (::strcmp(arg, "--jr_address") == 0)
 				relative = relative::absolute;
 			else
 				pathnames.push_back(arg);
