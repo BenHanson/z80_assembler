@@ -1,9 +1,7 @@
 CXX = g++
-CXXFLAGS = -O -std=c++20 -Wall -I ../lexertl17/include -I ../parsertl17/include
+CXXFLAGS = -O3 -std=c++20 -Wall -I ../lexertl17/include -I ../parsertl17/include
 
-LDFLAGS = -O
-
-LIBS = 
+LDFLAGS = -O3
 
 all: z80_assembler
 
@@ -32,11 +30,6 @@ sna.o: sna.cpp
 skool.o: skool.cpp
 	$(CXX) $(CXXFLAGS) -o skool.o -c skool.cpp
 
-library:
-
-binary:
-
 clean:
 	- rm *.o
 	- rm z80_assembler
-
