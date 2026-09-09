@@ -4,6 +4,8 @@ A complete Z80 assembler and disassembler.
 
 ## Building
 
+A C++20 compatible compiler is required.
+
 ```shell
 git clone https://github.com/BenHanson/lexertl17
 git clone https://github.com/BenHanson/parsertl17
@@ -11,7 +13,7 @@ git clone https://github.com/BenHanson/z80_assembler
 ```
 
 * Use the `Makefile` when building on Linux
-* Use the .sln file when building with Visual Studio
+* Use the `.sln` file when building with Visual Studio
 
 ## Usage
 
