@@ -77,7 +77,7 @@ static uint16_t rel_addr(const program& program, const uint8_t* curr)
 		(curr + 1 + static_cast<int8_t>(*curr) - &program._memory.front());
 }
 
-static [[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr,
+[[nodiscard]] static std::string dump_IX_IY_bits(const uint8_t*& curr,
 	const char xy, const base base)
 {
 	std::ostringstream ret;
@@ -1134,7 +1134,7 @@ static [[nodiscard]] std::string dump_IX_IY_bits(const uint8_t*& curr,
 	return ret.str();
 }
 
-static [[nodiscard]] std::string dump_bits(const uint8_t*& curr)
+[[nodiscard]] static std::string dump_bits(const uint8_t*& curr)
 {
 	std::ostringstream ret;
 
