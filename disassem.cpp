@@ -3166,7 +3166,8 @@ static std::string fetch_opcode(const uint8_t*& curr, const program& program,
 	return ret.str();
 }
 
-void dump(const program& program, const base base, const relative relative)
+void dump(const program& program, const base base, const relative relative,
+	const dump_mode mode)
 {
 	std::size_t addr = program._org;
 	const uint8_t* first = &program._memory.front();
@@ -3175,6 +3176,9 @@ void dump(const program& program, const base base, const relative relative)
 	std::size_t count = iter->_count;
 	std::string line;
 	std::string bytes;
+
+	if (mode == dump_mode::mnemonics_only)
+		std::cout << "  ORG " << addr << '\n';
 
 	while (first < second)
 	{
@@ -3261,31 +3265,37 @@ void dump(const program& program, const base base, const relative relative)
 
 		offset = first - curr;
 
-		for (; curr < first; ++curr)
+		if (mode == dump_mode::full)
 		{
-			if (base == base::hexadecimal)
-				ss << std::uppercase << std::hex <<
+			for (; curr < first; ++curr)
+			{
+				if (base == base::hexadecimal)
+					ss << std::uppercase << std::hex <<
 					std::setfill('0') << std::setw(2);
+				else
+					ss << std::setw(3);
+
+				ss << static_cast<int>(*curr) << ' ';
+			}
+
+			bytes = ss.str();
+			bytes.resize(static_cast<std::size_t>(5) *
+				static_cast<std::size_t>(base == base::hexadecimal ? 3 : 4), ' ');
+
+			if (base == base::hexadecimal)
+			{
+				std::cout << std::uppercase << std::hex <<
+					std::setfill('0') << std::setw(4);
+			}
 			else
-				ss << std::setw(3);
+				std::cout << std::setw(5);
 
-			ss << static_cast<int>(*curr) << ' ';
-		}
-
-		bytes = ss.str();
-		bytes.resize(static_cast<std::size_t>(5) *
-			static_cast<std::size_t>(base == base::hexadecimal ? 3 : 4), ' ');
-
-		if (base == base::hexadecimal)
-		{
-			std::cout << std::uppercase << std::hex <<
-				std::setfill('0') << std::setw(4);
+			std::cout << addr << "   " << bytes;
 		}
 		else
-			std::cout << std::setw(5);
+			std::cout << "  ";
 
-		std::cout << addr << "   ";
-		std::cout << bytes << line << '\n';
+		std::cout << line << '\n';
 		addr += offset;
 	}
 }

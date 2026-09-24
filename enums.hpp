@@ -11,3 +11,9 @@ enum class relative
 	offset,
 	absolute
 };
+
+enum class dump_mode
+{
+	mnemonics_only,
+	full
+};
